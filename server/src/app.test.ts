@@ -3,9 +3,20 @@ import request from 'supertest';
 import app from './app';
 
 describe('GET /api/health', () => {
-  it('should return status 200 and ok message', async () => {
+  it('should return HTTP 200 with status ok and service name', async () => {
     const response = await request(app).get('/api/health');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ status: 'ok', message: 'Server is running' });
+    expect(response.body).toEqual({
+      status: 'ok',
+      service: 'TokTickIT API',
+    });
+  });
+});
+
+describe('GET /api/categories', () => {
+  it('should return HTTP 200 and list of categories', async () => {
+    const response = await request(app).get('/api/categories');
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
   });
 });
