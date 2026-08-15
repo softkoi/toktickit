@@ -25,17 +25,23 @@ function App() {
     try {
       // 1. Health check
       const healthRes = await fetch('http://localhost:5000/api/health');
-      if (!healthRes.ok) throw new Error();
+      if (!healthRes.ok) throw new Error('API server offline');
       const healthData: HealthStatus = await healthRes.json();
       setHealth(healthData);
 
-      // 2. Fetch categories
-      const catRes = await fetch('http://localhost:5000/api/categories');
-      if (!catRes.ok) throw new Error();
-      const catData: Category[] = await catRes.json();
-      setCategories(catData);
+      // 2. Fetch categories (if DB is connected)
+      try {
+        const catRes = await fetch('http://localhost:5000/api/categories');
+        if (catRes.ok) {
+          const catData: Category[] = await catRes.json();
+          setCategories(catData);
+        }
+      } catch (catErr) {
+        console.warn('Could not fetch categories:', catErr);
+      }
     } catch (err) {
       setError(true);
+      setHealth(null);
     } finally {
       setLoading(false);
     }

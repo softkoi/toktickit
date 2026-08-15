@@ -7,10 +7,13 @@ describe('App Component Health & Category List', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders title and Check System button initially', () => {
+  it('renders title and Check System button initially without auto-fetching', () => {
     render(<App />);
+
     expect(screen.getByText('TokTickIT IT Service Desk')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Check System/i })).toBeInTheDocument();
+    expect(screen.queryByText('System Status: Online')).not.toBeInTheDocument();
+    expect(screen.queryByText('System Status: Offline')).not.toBeInTheDocument();
   });
 
   it('renders categories list when button is clicked and APIs succeed', async () => {
