@@ -1,64 +1,92 @@
-# TokTickIt Project
+# TokTickIT
 
-A full-stack web application built with React, Express, TypeScript, Bootstrap, Vitest, Supertest, and Prisma (PostgreSQL).
+TokTickIT is the Lab 1 starter for CPE334. It proves the full stack works as one vertical slice:
 
-## Project Structure
+`React UI -> Express REST API -> Prisma ORM -> PostgreSQL`
 
-```
+## Tech stack
+
+* **Frontend:** React, TypeScript, Vite, Bootstrap
+* **Backend:** Node.js, Express, TypeScript
+* **Database:** PostgreSQL, Prisma
+* **Testing:** Vitest, Supertest
+
+## Repository structure
+
+```text
 toktickit/
-├── client/              # Frontend (React + TypeScript + Vite + Bootstrap)
-│   ├── src/             # React application source code
-│   │   ├── test/        # Vitest setup
-│   │   ├── App.tsx      # Root React component
-│   │   └── main.tsx     # Application entrypoint
-│   └── package.json
-├── server/              # Backend (Node.js + Express + TypeScript + Prisma)
-│   ├── prisma/          # Prisma schema and migrations
-│   ├── src/             # Express server source code
-│   │   ├── app.ts       # Express app setup
-│   │   ├── index.ts     # Server entrypoint
-│   │   └── app.test.ts  # Supertest API tests
-│   └── package.json
-├── .env.example         # Example environment variables
-├── .gitignore           # Git ignore configuration
-└── README.md            # Project documentation
+├── client/
+│   ├── index.html
+│   ├── public/
+│   └── src/
+├── server/
+│   ├── prisma/
+│   ├── tests/
+│   └── src/
+├── docs/
+│   └── lab-01/
+│       ├── ai_use.md
+│       ├── reviewer.md
+│       └── tests.md
+├── prisma.config.ts
+├── README.md
+└── tsconfig.json
 ```
 
-## Setup Instructions
+## Project areas
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [PostgreSQL](https://www.postgresql.org/) database
+* **`client/`**: contains the React + Vite frontend.
+* **`server/`**: contains the Express + Prisma backend work.
+* **`docs/lab-01/`**: stores the lab submission documents.
 
-### 1. Environment Configuration
-Copy `.env.example` to `.env` or create `.env` files in root / server directory:
-```bash
-# Set your DATABASE_URL in server/.env
-DATABASE_URL="postgresql://user:password@localhost:5432/toktickit_db?schema=public"
-```
+## Local setup
 
-### 2. Frontend Setup (client)
+### 1) Install dependencies
+
 ```bash
 cd client
 npm install
-npm run dev        # Run frontend dev server on http://localhost:5173
-npm run test       # Run client tests using Vitest
-```
 
-### 3. Backend Setup (server)
-```bash
-cd server
+cd ../server
 npm install
-npm run dev        # Run backend dev server on http://localhost:5000
-npm run test       # Run server tests using Vitest & Supertest
 ```
 
-### 4. Database Setup (Prisma)
+### 2) Configure the backend
+
+Create `server/.env` and set the database connection string required by Prisma:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5435/toktickit_db?schema=public"
+```
+
+### 3) Run the frontend & backend
+
 ```bash
+# Frontend (in client/)
+cd client
+npm run dev
+
+# Backend (in server/)
 cd server
-npx prisma db push # Push schema to database
+npm run dev
 ```
 
-## Testing
-- **Client Tests**: Vitest with `@testing-library/react` and `jsdom`
-- **Server Tests**: Vitest with `supertest` for API endpoint verification
+### 4) Run checks
+
+The project defines these test scripts:
+
+* `npm run test` (in `server/` to run Vitest + Supertest API tests)
+* `npm run test` (in `client/` to run Vitest UI tests)
+
+## Lab documentation
+
+* **`docs/lab-01/ai_use.md`**: records AI usage and prompt notes.
+* **`docs/lab-01/reviewer.md`**: records peer review details.
+* **`docs/lab-01/tests.md`**: records automated test suite details.
+
+## Lab 1 acceptance summary
+
+* `GET /api/health` returns 200 with `{ "status": "ok", "service": "TokTickIT API" }`
+* `GET /api/categories` returns the seeded categories in a stable order
+* The UI shows loading, success, and failure states
+* The repository keeps the Lab 1 workflow, docs, and tests organized
