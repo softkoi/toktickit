@@ -12,3 +12,11 @@ describe('GET /api/health', () => {
     });
   });
 });
+
+describe('GET /api/categories', () => {
+  it('should return HTTP 200 and list of categories', async () => {
+    const response = await request(app).get('/api/categories');
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+});

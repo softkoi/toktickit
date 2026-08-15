@@ -5,8 +5,14 @@ interface HealthStatus {
   service: string;
 }
 
+interface Category {
+  id: number;
+  name: string;
+}
+
 function App() {
   const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<boolean>(false);
 
@@ -14,16 +20,28 @@ function App() {
     setLoading(true);
     setError(false);
     setHealth(null);
+    setCategories([]);
 
     try {
-      const response = await fetch('http://localhost:5000/api/health');
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
+      // 1. Health check
+      const healthRes = await fetch('http://localhost:5000/api/health');
+      if (!healthRes.ok) throw new Error('API server offline');
+      const healthData: HealthStatus = await healthRes.json();
+      setHealth(healthData);
+
+      // 2. Fetch categories (if DB is connected)
+      try {
+        const catRes = await fetch('http://localhost:5000/api/categories');
+        if (catRes.ok) {
+          const catData: Category[] = await catRes.json();
+          setCategories(catData);
+        }
+      } catch (catErr) {
+        console.warn('Could not fetch categories:', catErr);
       }
-      const data: HealthStatus = await response.json();
-      setHealth(data);
     } catch (err) {
       setError(true);
+      setHealth(null);
     } finally {
       setLoading(false);
     }
@@ -55,8 +73,22 @@ function App() {
             </div>
           )}
 
+          {categories.length > 0 && !loading && (
+            <div className="mt-4 text-start">
+              <h5 className="fw-bold mb-3">Categories List:</h5>
+              <ul className="list-group">
+                {categories.map((cat) => (
+                  <li key={cat.id} className="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{cat.name}</span>
+                    <span className="badge bg-secondary rounded-pill">ID: {cat.id}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <button
-            className="btn btn-primary mt-2"
+            className="btn btn-primary mt-3"
             onClick={checkHealth}
             disabled={loading}
           >

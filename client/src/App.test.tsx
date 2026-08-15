@@ -2,7 +2,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from './App';
 
-describe('App Component Health Check UI', () => {
+describe('App Component Health & Category List', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -16,29 +16,35 @@ describe('App Component Health Check UI', () => {
     expect(screen.queryByText('System Status: Offline')).not.toBeInTheDocument();
   });
 
-  it('renders System Status: Online when Check System button is clicked and API call succeeds', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ status: 'ok', service: 'TokTickIT API' }),
-    } as Response);
+  it('renders categories list when button is clicked and APIs succeed', async () => {
+    vi.spyOn(global, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 'ok', service: 'TokTickIT API' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          { id: 1, name: 'Account and Access' },
+          { id: 2, name: 'Hardware' },
+        ],
+      } as Response);
 
     render(<App />);
-
-    const button = screen.getByRole('button', { name: /Check System/i });
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: /Check System/i }));
 
     await waitFor(() => {
       expect(screen.getByText('System Status: Online')).toBeInTheDocument();
+      expect(screen.getByText('Account and Access')).toBeInTheDocument();
+      expect(screen.getByText('Hardware')).toBeInTheDocument();
     });
   });
 
-  it('renders offline error message when Check System button is clicked and API call fails', async () => {
+  it('renders error message when API call fails', async () => {
     vi.spyOn(global, 'fetch').mockRejectedValueOnce(new Error('Network error'));
 
     render(<App />);
-
-    const button = screen.getByRole('button', { name: /Check System/i });
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: /Check System/i }));
 
     await waitFor(() => {
       expect(screen.getByText('System Status: Offline')).toBeInTheDocument();
