@@ -63,7 +63,7 @@ export const RequesterProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = (): Record<string, string> => {
     if (!activeRequester) return {};
     return { 'X-Requester-Id': activeRequester.id.toString() };
   };
