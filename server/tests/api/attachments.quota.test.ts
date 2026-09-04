@@ -31,9 +31,13 @@ describe('API Test: Attachment Quota Enforcement (TEST-010 / AC-06)', () => {
       create: { id: 994, name: 'Quota System', isActive: true },
     });
 
+    const ticketNumber = `TKT-${new Date().getFullYear()}-000103`;
+    await prisma.attachment.deleteMany({ where: { ticket: { ticketNumber } } });
+    await prisma.ticket.deleteMany({ where: { ticketNumber } });
+
     const ticket = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-${new Date().getFullYear()}-000103`,
+        ticketNumber,
         requesterId: requester.id,
         categoryId: category.id,
         relatedSystemId: system.id,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, UploadCloud } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useRequester } from '../context/RequesterContext';
+import { AttachmentUploader, SelectedFile } from './AttachmentUploader';
 
 interface Category {
   id: number;
@@ -27,6 +28,7 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess, onCancel }) =
   const [requestedPriority, setRequestedPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
   const [summary, setSummary] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const [attachedFiles, setAttachedFiles] = useState<SelectedFile[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
   const [fetchingRefData, setFetchingRefData] = useState<boolean>(true);
@@ -126,6 +128,27 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess, onCancel }) =
           setGeneralError(result.error?.message || 'Failed to create ticket.');
         }
         return;
+      }
+
+      // BR-06: Upload attached files sequentially if present
+      const createdTicketId = result.data.id;
+      if (attachedFiles.length > 0 && createdTicketId) {
+        for (const fileItem of attachedFiles) {
+          try {
+            const formData = new FormData();
+            formData.append('file', fileItem.file);
+
+            await fetch(`http://localhost:3000/api/tickets/${createdTicketId}/attachments`, {
+              method: 'POST',
+              headers: {
+                'X-Requester-Id': String(activeRequester.id),
+              },
+              body: formData,
+            });
+          } catch (attErr) {
+            console.error('Failed to upload attachment:', attErr);
+          }
+        }
       }
 
       if (onSuccess) {
@@ -280,11 +303,13 @@ export const TicketForm: React.FC<TicketFormProps> = ({ onSuccess, onCancel }) =
           {errors.description && <span style={{ color: '#D32F2F', fontSize: '12px', marginTop: '4px', display: 'block' }}>{errors.description}</span>}
         </div>
 
-        {/* Attachment Dropzone Placeholder */}
-        <div style={{ marginBottom: '32px', border: '2px dashed #C4D3CB', borderRadius: '12px', padding: '24px', textAlign: 'center', background: '#F8FBF9' }}>
-          <UploadCloud size={32} color="#006B3C" style={{ marginBottom: '8px' }} />
-          <p style={{ fontWeight: 600, fontSize: '14px', color: '#1A2D23' }}>Drag & Drop file attachments here, or click to browse</p>
-          <p style={{ fontSize: '12px', color: '#5C6B73', marginTop: '4px' }}>Supports JPG, PNG, WEBP, PDF (Max 5MB per file, up to 5 files)</p>
+        {/* Attachment Dropzone */}
+        <div style={{ marginBottom: '32px' }}>
+          <AttachmentUploader
+            files={attachedFiles}
+            onFilesChange={setAttachedFiles}
+            disabled={loading}
+          />
         </div>
 
         {/* Action Buttons */}

@@ -39,9 +39,13 @@ describe('API Test: Attachment Validation & Ownership (TEST-008 / TEST-009 / AC-
       create: { id: 996, name: 'Validation System', isActive: true },
     });
 
+    const ticketNumber = `TKT-${new Date().getFullYear()}-000102`;
+    await prisma.attachment.deleteMany({ where: { ticket: { ticketNumber } } });
+    await prisma.ticket.deleteMany({ where: { ticketNumber } });
+
     const ticket = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-${new Date().getFullYear()}-000102`,
+        ticketNumber,
         requesterId: requesterId,
         categoryId: category.id,
         relatedSystemId: system.id,

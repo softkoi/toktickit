@@ -32,9 +32,13 @@ describe('Unit Test: Attachment Service (TEST-011 / BR-05 / AC-06)', () => {
       create: { id: 998, name: 'Attachment Unit Test System', isActive: true },
     });
 
+    const ticketNumber = `TKT-${new Date().getFullYear()}-000104`;
+    await prisma.attachment.deleteMany({ where: { ticket: { ticketNumber } } });
+    await prisma.ticket.deleteMany({ where: { ticketNumber } });
+
     const ticket = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-${new Date().getFullYear()}-000104`,
+        ticketNumber,
         requesterId: requester.id,
         categoryId: category.id,
         relatedSystemId: system.id,

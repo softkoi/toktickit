@@ -53,7 +53,12 @@ describe('Unit Test: Ticket Number Generator (TEST-004 / BR-01)', () => {
   });
 
   it('should increment sequential number correctly (TEST-004)', async () => {
-    const customNum = `TKT-${currentYear}-000041`;
+    // Determine current highest sequence number dynamically
+    const currentTicketNum = await generateTicketNumber(prisma);
+    const parts = currentTicketNum.split('-');
+    const currentSeq = parseInt(parts[2], 10);
+    
+    const customNum = `TKT-${currentYear}-${String(currentSeq).padStart(6, '0')}`;
     
     // Create dummy ticket with customNum
     await prisma.ticket.upsert({
@@ -72,6 +77,7 @@ describe('Unit Test: Ticket Number Generator (TEST-004 / BR-01)', () => {
     });
 
     const nextTicketNumber = await generateTicketNumber(prisma);
-    expect(nextTicketNumber).toBe(`TKT-${currentYear}-000042`);
+    const expectedNextNum = `TKT-${currentYear}-${String(currentSeq + 1).padStart(6, '0')}`;
+    expect(nextTicketNumber).toBe(expectedNextNum);
   });
 });
