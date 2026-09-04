@@ -5,6 +5,7 @@ import {
   canAddAttachment,
   MAX_ACTIVE_ATTACHMENTS,
 } from '../../src/services/attachment.service';
+import { generateTicketNumber } from '../../src/utils/ticket-number.generator';
 
 const prisma = new PrismaClient();
 
@@ -33,7 +34,7 @@ describe('Unit Test: Attachment Service (TEST-011 / BR-05 / AC-06)', () => {
 
     const ticket = await prisma.ticket.create({
       data: {
-        ticketNumber: `TKT-${new Date().getFullYear()}-999998`,
+        ticketNumber: `TKT-${new Date().getFullYear()}-000104`,
         requesterId: requester.id,
         categoryId: category.id,
         relatedSystemId: system.id,
