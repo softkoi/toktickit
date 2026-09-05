@@ -98,3 +98,157 @@ export async function createTicket(req: AuthenticatedRequest, res: Response) {
     });
   }
 }
+
+export async function getTickets(req: AuthenticatedRequest, res: Response) {
+  const requesterId = req.requesterId;
+  if (!requesterId) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'MISSING_REQUESTER_HEADER',
+        message: 'X-Requester-Id header is required',
+      },
+    });
+  }
+
+  const {
+    search = '',
+    category,
+    requestedPriority,
+    status,
+    sortBy = 'createdAt',
+    sortOrder = 'desc',
+    page = '1',
+    pageSize = '50',
+  } = req.query;
+
+  // Validate page
+  const pageRaw = String(page).trim();
+  const pageNum = parseInt(pageRaw, 10);
+  if (isNaN(pageNum) || pageNum <= 0 || pageRaw !== String(pageNum)) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_PAGE',
+        message: 'page must be a positive integer',
+      },
+    });
+  }
+
+  // Validate pageSize
+  const pageSizeRaw = String(pageSize).trim();
+  const pageSizeNum = parseInt(pageSizeRaw, 10);
+  const allowedPageSizes = [10, 20, 50];
+  if (isNaN(pageSizeNum) || !allowedPageSizes.includes(pageSizeNum) || pageSizeRaw !== String(pageSizeNum)) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_PAGE_SIZE',
+        message: 'pageSize must be 10, 20, or 50',
+      },
+    });
+  }
+
+  // Validate sortBy and sortOrder
+  const validSortBy = ['ticketNumber', 'createdAt', 'updatedAt'];
+  const validSortOrder = ['asc', 'desc'];
+  if (
+    typeof sortBy !== 'string' ||
+    !validSortBy.includes(sortBy) ||
+    typeof sortOrder !== 'string' ||
+    !validSortOrder.includes(sortOrder)
+  ) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'INVALID_SORT',
+        message: 'sortBy or sortOrder is invalid',
+      },
+    });
+  }
+
+  try {
+    const whereClause: any = {
+      requesterId,
+    };
+
+    if (category) {
+      const catId = parseInt(category as string, 10);
+      if (!isNaN(catId)) {
+        whereClause.categoryId = catId;
+      }
+    }
+
+    if (requestedPriority && typeof requestedPriority === 'string') {
+      whereClause.requestedPriority = requestedPriority;
+    }
+
+    if (status && typeof status === 'string') {
+      whereClause.currentStatus = status;
+    }
+
+    if (search && typeof search === 'string' && search.trim() !== '') {
+      const searchKeyword = search.trim();
+      whereClause.OR = [
+        { summary: { contains: searchKeyword } },
+        { ticketNumber: { contains: searchKeyword } },
+      ];
+    }
+
+    const totalItems = await prisma.ticket.count({
+      where: whereClause,
+    });
+
+    const totalPages = Math.ceil(totalItems / pageSizeNum);
+
+    let items: any[] = [];
+    if (pageNum <= totalPages && totalItems > 0) {
+      items = await prisma.ticket.findMany({
+        where: whereClause,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+        skip: (pageNum - 1) * pageSizeNum,
+        take: pageSizeNum,
+        select: {
+          id: true,
+          ticketNumber: true,
+          summary: true,
+          requestedPriority: true,
+          currentStatus: true,
+          createdAt: true,
+          updatedAt: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        items,
+        meta: {
+          page: pageNum,
+          pageSize: pageSizeNum,
+          totalItems,
+          totalPages,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching tickets:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: 'An unexpected error occurred',
+      },
+    });
+  }
+}
+
