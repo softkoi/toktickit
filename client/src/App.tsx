@@ -3,6 +3,7 @@ import { RequesterProvider } from './context/RequesterContext';
 import { Navbar } from './components/Navbar';
 import { RequesterSwitcher } from './components/RequesterSwitcher';
 import { CreateTicketPage } from './pages/CreateTicketPage';
+import { MyTicketsPage } from './pages/MyTicketsPage';
 
 export const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'select-requester' | 'my-tickets' | 'create-ticket'>('select-requester');
@@ -23,14 +24,11 @@ export const AppContent: React.FC = () => {
         )}
 
         {activeTab === 'my-tickets' && (
-          <div style={{ maxWidth: '1000px', margin: '40px auto', textAlign: 'center', padding: '40px' }} className="card">
-            <h2 style={{ fontSize: '20px', color: '#1A2D23', marginBottom: '8px' }}>My Tickets Screen (Issue 4)</h2>
-            <p style={{ color: '#5C6B73', marginBottom: '20px' }}>This screen will be built in Issue 4.</p>
-            <button className="btn btn-primary" onClick={() => setActiveTab('create-ticket')}>
-              + Create Ticket
-            </button>
-          </div>
+          <MyTicketsPage
+            onNavigateToCreateTicket={() => setActiveTab('create-ticket')}
+          />
         )}
+
 
         {activeTab === 'create-ticket' && (
           <CreateTicketPage
