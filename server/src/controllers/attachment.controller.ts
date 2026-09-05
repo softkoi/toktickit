@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
+import fs from 'fs';
 import { canAddAttachment } from '../services/attachment.service';
 import { safeUnlink } from '../utils/file.utils';
 
@@ -123,3 +125,195 @@ export async function uploadAttachment(req: Request, res: Response) {
     });
   }
 }
+
+export async function downloadAttachment(req: Request, res: Response) {
+  try {
+    const requesterId = (req as any).requesterId;
+    if (!requesterId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_REQUESTER_HEADER',
+          message: 'X-Requester-Id header is required',
+        },
+      });
+    }
+
+    const attachmentId = parseInt(req.params.id, 10);
+    if (isNaN(attachmentId)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid attachment ID',
+        },
+      });
+    }
+
+    const attachment = await prisma.attachment.findUnique({
+      where: { id: attachmentId },
+      include: { ticket: true },
+    });
+
+    if (!attachment) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Attachment not found',
+        },
+      });
+    }
+
+    if (attachment.ticket.requesterId !== requesterId) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Forbidden: You do not own this attachment',
+        },
+      });
+    }
+
+    if (attachment.isRemoved) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'ATTACHMENT_REMOVED',
+          message: 'Cannot download a removed attachment',
+        },
+      });
+    }
+
+    const resolvedPath = path.resolve(attachment.filePath);
+    if (!fs.existsSync(resolvedPath)) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'File not found on server disk',
+        },
+      });
+    }
+
+    res.setHeader('Content-Type', attachment.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(attachment.fileName)}"`);
+    return res.sendFile(resolvedPath);
+  } catch (error: any) {
+    console.error('Error downloading attachment:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: error.message || 'An unexpected error occurred',
+      },
+    });
+  }
+}
+
+export async function removeAttachment(req: Request, res: Response) {
+  try {
+    const requesterId = (req as any).requesterId;
+    if (!requesterId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'MISSING_REQUESTER_HEADER',
+          message: 'X-Requester-Id header is required',
+        },
+      });
+    }
+
+    const attachmentId = parseInt(req.params.id, 10);
+    if (isNaN(attachmentId)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid attachment ID',
+        },
+      });
+    }
+
+    const { removalReason } = req.body || {};
+    const trimmedReason = typeof removalReason === 'string' ? removalReason.trim() : '';
+
+    if (!trimmedReason || trimmedReason.length < 5) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'removalReason is required and must be at least 5 characters long.',
+        },
+      });
+    }
+
+    const attachment = await prisma.attachment.findUnique({
+      where: { id: attachmentId },
+      include: { ticket: true },
+    });
+
+    if (!attachment) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Attachment not found',
+        },
+      });
+    }
+
+    if (attachment.ticket.requesterId !== requesterId) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Forbidden: You do not own this attachment',
+        },
+      });
+    }
+
+    if (attachment.isRemoved) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'ALREADY_REMOVED',
+          message: 'Attachment is already removed',
+        },
+      });
+    }
+
+    const updated = await prisma.attachment.update({
+      where: { id: attachmentId },
+      data: {
+        isRemoved: true,
+        removedAt: new Date(),
+        removalReason: trimmedReason,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: updated.id,
+        ticketId: updated.ticketId,
+        fileName: updated.fileName,
+        mimeType: updated.mimeType,
+        sizeBytes: updated.sizeBytes,
+        isRemoved: updated.isRemoved,
+        removedAt: updated.removedAt,
+        removalReason: updated.removalReason,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error removing attachment:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: error.message || 'An unexpected error occurred',
+      },
+    });
+  }
+}
+

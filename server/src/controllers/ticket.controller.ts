@@ -260,3 +260,82 @@ export async function getTickets(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function getTicketById(req: AuthenticatedRequest, res: Response) {
+  const requesterId = req.requesterId;
+  if (!requesterId) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'MISSING_REQUESTER_HEADER',
+        message: 'X-Requester-Id header is required',
+      },
+    });
+  }
+
+  const ticketId = parseInt(req.params.id, 10);
+  if (isNaN(ticketId)) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid ticket ID',
+      },
+    });
+  }
+
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        category: {
+          select: { id: true, name: true },
+        },
+        relatedSystem: {
+          select: { id: true, name: true },
+        },
+        requester: {
+          select: { id: true, name: true, email: true },
+        },
+        attachments: {
+          orderBy: { uploadedAt: 'asc' },
+        },
+      },
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Ticket not found',
+        },
+      });
+    }
+
+    if (ticket.requesterId !== requesterId) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Forbidden: You do not own this ticket',
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: ticket,
+    });
+  } catch (error) {
+    console.error('Error fetching ticket by ID:', error);
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: 'An unexpected error occurred',
+      },
+    });
+  }
+}
+
+
