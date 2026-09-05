@@ -38,9 +38,13 @@ export interface PaginationMeta {
 
 interface MyTicketsPageProps {
   onNavigateToCreateTicket?: () => void;
+  onSelectTicket?: (ticketId: number) => void;
 }
 
-export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({ onNavigateToCreateTicket }) => {
+export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({
+  onNavigateToCreateTicket,
+  onSelectTicket,
+}) => {
   const { activeRequester } = useRequester();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -659,6 +663,7 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({ onNavigateToCreate
                 {tickets.map((t) => (
                   <tr
                     key={t.id}
+                    onClick={() => onSelectTicket?.(t.id)}
                     style={{
                       borderBottom: '1px solid var(--color-divider)',
                       transition: 'background-color 150ms ease-in-out',
