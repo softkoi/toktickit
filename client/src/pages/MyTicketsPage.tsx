@@ -77,13 +77,15 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({ onNavigateToCreate
       .catch((err) => console.error('Failed to fetch categories:', err));
   }, []);
 
-  // Fetch tickets function
-  const fetchTickets = useCallback(() => {
+  useEffect(() => {
     if (!activeRequester) {
       setTickets([]);
       setIsLoading(false);
       return;
     }
+
+    const controller = new AbortController();
+    const { signal } = controller;
 
     setIsLoading(true);
     setError(null);
@@ -99,6 +101,7 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({ onNavigateToCreate
     queryParams.set('pageSize', String(pageSize));
 
     fetch(`/api/tickets?${queryParams.toString()}`, {
+      signal,
       headers: {
         'X-Requester-Id': String(activeRequester.id),
       },
@@ -121,13 +124,20 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({ onNavigateToCreate
         }
       })
       .catch((err) => {
+        if (err.name === 'AbortError') return;
         console.error('Error fetching tickets:', err);
         setError('Network error: Unable to load tickets');
         setTickets([]);
       })
       .finally(() => {
-        setIsLoading(false);
+        if (!signal.aborted) {
+          setIsLoading(false);
+        }
       });
+
+    return () => {
+      controller.abort();
+    };
   }, [
     activeRequester,
     searchQuery,
@@ -139,10 +149,6 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({ onNavigateToCreate
     page,
     pageSize,
   ]);
-
-  useEffect(() => {
-    fetchTickets();
-  }, [fetchTickets]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -399,6 +405,8 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({ onNavigateToCreate
               placeholder="Search by summary or ticket number (e.g. TKT-2026-000042)..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              aria-label="Search tickets by summary or number"
+              autoComplete="off"
               style={{
                 width: '100%',
                 paddingLeft: '38px',
@@ -414,6 +422,7 @@ export const MyTicketsPage: React.FC<MyTicketsPageProps> = ({ onNavigateToCreate
           </div>
           <button
             type="submit"
+            aria-label="Submit search"
             className="btn btn-primary"
             style={{ padding: '9px 16px', fontSize: '0.875rem', fontWeight: 600 }}
           >

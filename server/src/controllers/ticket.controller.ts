@@ -173,10 +173,18 @@ export async function getTickets(req: AuthenticatedRequest, res: Response) {
     };
 
     if (category) {
-      const catId = parseInt(category as string, 10);
-      if (!isNaN(catId)) {
-        whereClause.categoryId = catId;
+      const catRaw = String(category).trim();
+      const catId = parseInt(catRaw, 10);
+      if (isNaN(catId) || catId <= 0 || catRaw !== String(catId)) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_CATEGORY',
+            message: 'category must be a positive integer',
+          },
+        });
       }
+      whereClause.categoryId = catId;
     }
 
     if (requestedPriority && typeof requestedPriority === 'string') {
@@ -195,15 +203,11 @@ export async function getTickets(req: AuthenticatedRequest, res: Response) {
       ];
     }
 
-    const totalItems = await prisma.ticket.count({
-      where: whereClause,
-    });
-
-    const totalPages = Math.ceil(totalItems / pageSizeNum);
-
-    let items: any[] = [];
-    if (pageNum <= totalPages && totalItems > 0) {
-      items = await prisma.ticket.findMany({
+    const [totalItems, rawItems] = await Promise.all([
+      prisma.ticket.count({
+        where: whereClause,
+      }),
+      prisma.ticket.findMany({
         where: whereClause,
         orderBy: {
           [sortBy]: sortOrder,
@@ -225,8 +229,12 @@ export async function getTickets(req: AuthenticatedRequest, res: Response) {
             },
           },
         },
-      });
-    }
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / pageSizeNum);
+    const items = pageNum <= totalPages ? rawItems : [];
+
 
     return res.status(200).json({
       success: true,

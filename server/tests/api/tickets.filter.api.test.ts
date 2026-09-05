@@ -83,4 +83,15 @@ describe('API Test: GET /api/tickets Multi-condition Filtering (TEST-014 / AC-09
     expect(res.body.data.items.length).toBe(1);
     expect(res.body.data.items[0].ticketNumber).toBe('TKT-2026-914001');
   });
+
+  it('should return 400 INVALID_CATEGORY when category parameter is not a positive integer', async () => {
+    const res = await request(app)
+      .get('/api/tickets?category=invalid_abc')
+      .set('X-Requester-Id', String(userId));
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('INVALID_CATEGORY');
+  });
 });
+
