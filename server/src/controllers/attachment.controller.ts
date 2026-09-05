@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
 import { canAddAttachment } from '../services/attachment.service';
+import { safeUnlink } from '../utils/file.utils';
 
 const prisma = new PrismaClient();
 
@@ -37,7 +37,7 @@ export async function uploadAttachment(req: Request, res: Response) {
     if (!ticket) {
       // Clean up uploaded temp file if present
       if (req.file) {
-        fs.unlink(req.file.path, () => {});
+        await safeUnlink(req.file.path);
       }
       return res.status(404).json({
         success: false,
@@ -51,7 +51,7 @@ export async function uploadAttachment(req: Request, res: Response) {
     // 2. Ownership Enforcement Rule (BR-09 / BR-24)
     if (ticket.requesterId !== requesterId) {
       if (req.file) {
-        fs.unlink(req.file.path, () => {});
+        await safeUnlink(req.file.path);
       }
       return res.status(403).json({
         success: false,
@@ -76,7 +76,7 @@ export async function uploadAttachment(req: Request, res: Response) {
     // 4. Quota check (Max 5 active attachments)
     const allowed = await canAddAttachment(ticketId, prisma);
     if (!allowed) {
-      fs.unlink(req.file.path, () => {});
+      await safeUnlink(req.file.path);
       return res.status(409).json({
         success: false,
         error: {
@@ -112,7 +112,7 @@ export async function uploadAttachment(req: Request, res: Response) {
     });
   } catch (error: any) {
     if (req.file) {
-      fs.unlink(req.file.path, () => {});
+      await safeUnlink(req.file.path);
     }
     return res.status(500).json({
       success: false,

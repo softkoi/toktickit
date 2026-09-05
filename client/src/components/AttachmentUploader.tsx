@@ -1,5 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, FileText, Image as ImageIcon, X, AlertCircle } from 'lucide-react';
+import {
+  ALLOWED_MIME_TYPES,
+  ALLOWED_EXTENSIONS,
+  MAX_FILE_SIZE_BYTES,
+} from '../constants/attachment.constants';
 
 export interface SelectedFile {
   id: string;
@@ -14,10 +19,6 @@ interface AttachmentUploaderProps {
   maxFiles?: number;
   disabled?: boolean;
 }
-
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
 export const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -34,6 +35,16 @@ export const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      files.forEach((fileItem) => {
+        if (fileItem.previewUrl) {
+          URL.revokeObjectURL(fileItem.previewUrl);
+        }
+      });
+    };
+  }, [files]);
 
   const validateAndAddFiles = (incomingFiles: File[]) => {
     setErrorMessage(null);
@@ -155,6 +166,14 @@ export const AttachmentUploader: React.FC<AttachmentUploaderProps> = ({
 
       {/* Dropzone area */}
       <div
+        role="button"
+        tabIndex={disabled || files.length >= maxFiles ? -1 : 0}
+        onKeyDown={(e) => {
+          if ((e.key === 'Enter' || e.key === ' ') && !disabled && files.length < maxFiles) {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

@@ -2,14 +2,20 @@ import { PrismaClient, Prisma } from '@prisma/client';
 
 const defaultPrisma = new PrismaClient();
 
-export const MAX_ACTIVE_ATTACHMENTS = 5;
-export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB = 5,242,880 bytes
-export const ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'application/pdf',
-];
+import {
+  MAX_ACTIVE_ATTACHMENTS,
+  MAX_FILE_SIZE_BYTES,
+  ALLOWED_MIME_TYPES,
+  ALLOWED_EXTENSIONS,
+} from '../constants/attachment.constants';
+
+export {
+  MAX_ACTIVE_ATTACHMENTS,
+  MAX_FILE_SIZE_BYTES,
+  ALLOWED_MIME_TYPES,
+  ALLOWED_EXTENSIONS,
+};
+
 
 /**
  * Counts active attachments (isRemoved = false) for a given ticket ID.
