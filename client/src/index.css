@@ -378,6 +378,117 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* Mobile Drawer Menu & Responsive Controls */
+.mobile-nav-toggle-area {
+  display: none;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+.mobile-menu-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #FFFFFF;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-drawer-menu {
+  background-color: #004D2B; /* Darker Zen Green background */
+  padding: 16px 20px 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: slideDown 200ms ease-out forwards;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-requester-box {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-requester-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-requester-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.mobile-requester-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.change-requester-btn {
+  background-color: #FFFFFF;
+  color: #006B3C;
+  border: none;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+  white-space: nowrap;
+}
+
+.change-requester-btn:hover {
+  background-color: #EAF6EF;
+}
+
+.mobile-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 150ms ease;
+}
+
+.mobile-nav-item:hover, .mobile-nav-item.active {
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
 /* ==========================================================================
    Responsive Layout Media Queries (Zen Green Responsive Specification)
    ========================================================================== */
@@ -402,39 +513,22 @@ body {
 
 /* Mobile (<768px) */
 @media (max-width: 767px) {
-  .navbar {
-    padding: 8px 12px;
-    height: auto;
-    min-height: 56px;
-    flex-wrap: wrap;
-    gap: 8px;
+  .desktop-nav {
+    display: none !important;
   }
 
-  .navbar-left {
-    gap: 12px;
-    flex-wrap: wrap;
-    width: 100%;
-    justify-content: space-between;
+  .mobile-nav-toggle-area {
+    display: flex !important;
+  }
+
+  .navbar {
+    padding: 10px 16px;
+    height: auto;
+    min-height: 56px;
   }
 
   .brand-title {
-    font-size: 16px;
-  }
-
-  .nav-links {
-    gap: 6px;
-  }
-
-  .nav-link {
-    font-size: 12.5px;
-    padding: 4px 8px;
-  }
-
-  .profile-dropdown-btn span {
-    max-width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 17px;
   }
 
   .page-container, .requester-select-page {
@@ -474,4 +568,5 @@ body {
     width: 100%;
   }
 }
+
 
