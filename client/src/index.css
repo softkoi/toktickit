@@ -377,3 +377,101 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ==========================================================================
+   Responsive Layout Media Queries (Zen Green Responsive Specification)
+   ========================================================================== */
+
+/* Tablet (768px - 991px) */
+@media (max-width: 991px) {
+  .page-container, .requester-select-page {
+    padding: 16px;
+    max-width: 100%;
+  }
+
+  .form-grid-2col {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .filter-toolbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+/* Mobile (<768px) */
+@media (max-width: 767px) {
+  .navbar {
+    padding: 8px 12px;
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .navbar-left {
+    gap: 12px;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .brand-title {
+    font-size: 16px;
+  }
+
+  .nav-links {
+    gap: 6px;
+  }
+
+  .nav-link {
+    font-size: 12.5px;
+    padding: 4px 8px;
+  }
+
+  .profile-dropdown-btn span {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .page-container, .requester-select-page {
+    padding: 12px;
+  }
+
+  .requester-select-card {
+    padding: 24px 16px;
+    margin: 16px auto;
+  }
+
+  .form-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .table-container, .data-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .card-actions, .form-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn {
+    width: 100%;
+  }
+}
+
