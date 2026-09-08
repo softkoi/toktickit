@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Lab 2. TokTickIT Requester Ticketing MVP with UI Foundation - Kawinpop</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #000000;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    background-color: #ffffff;
+  }
+  h1 {
+    font-size: 20pt;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-bottom: 5px;
+  }
+  h2 {
+    font-size: 16pt;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-top: 0;
+    margin-bottom: 25px;
+  }
+  h3 {
+    font-size: 14pt;
+    font-weight: normal;
+    color: #000000;
+    margin-top: 30px;
+    margin-bottom: 15px;
+  }
+  h4 {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #000000;
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+  h5 {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #000000;
+    margin-top: 15px;
+    margin-bottom: 8px;
+  }
+  .student-info {
+    font-size: 12pt;
+    margin-bottom: 30px;
+  }
+  .student-info p {
+    margin: 4px 0;
+  }
+  
+  /* Styled Table like the PDF handout */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+    font-size: 11pt;
+  }
+  th, td {
+    border: 1px solid #000000;
+    padding: 10px 14px;
+    vertical-align: top;
+    text-align: left;
+  }
+  th {
+    background-color: #0070c0; /* Friend's PDF blue background */
+    color: #ffffff;
+    font-weight: bold;
+  }
+  
+  .img-placeholder {
+    background-color: #f8f9fa;
+    border: 2px dashed #cccccc;
+    color: #666666;
+    padding: 40px 20px;
+    text-align: center;
+    font-style: italic;
+    border-radius: 4px;
+    margin: 5px 0;
+  }
+  
+  a {
+    color: #0563c1;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+
+  <h1>CPE 334 Introduction to Software Engineering in the Age of AI Agents</h1>
+  <h2>Lab 2. TokTickIT Requester Ticketing MVP with UI Foundation.</h2>
+
+  <div class="student-info">
+    <p><strong>Name:</strong> Kawinpop [ระบูนามสกุลที่นี่ / Last Name]</p>
+    <p><strong>Student ID:</strong> [ระบุรหัสนักศึกษาที่นี่ / e.g. 6707050XXXX]</p>
+  </div>
+
+  <h3>1. Git Use with Engineering Workflow</h3>
+
+  <h4>1.1 Repository & Project URLs</h4>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 35%;">Item</th>
+        <th style="width: 65%;">URL</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>GitHub Repository</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit">https://github.com/softkoi/toktickit</a></td>
+      </tr>
+      <tr>
+        <td><strong>GitHub Project Board</strong></td>
+        <td><a href="https://github.com/users/softkoi/projects/1">https://github.com/users/softkoi/projects/1</a></td>
+      </tr>
+      <tr>
+        <td><strong>Issue 1: Sprint Specification and Test Plan</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/issues/13">https://github.com/softkoi/toktickit/issues/13</a></td>
+      </tr>
+      <tr>
+        <td><strong>Issue 2: Database Setup and Development Requester Context</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/issues/14">https://github.com/softkoi/toktickit/issues/14</a></td>
+      </tr>
+      <tr>
+        <td><strong>Issue 3: Implement Ticket Creation System</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/issues/15">https://github.com/softkoi/toktickit/issues/15</a></td>
+      </tr>
+      <tr>
+        <td><strong>Issue 4: Implement File Attachment Upload & Validation</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/issues/16">https://github.com/softkoi/toktickit/issues/16</a></td>
+      </tr>
+      <tr>
+        <td><strong>Issue 5: Implement My Tickets Dashboard</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/issues/17">https://github.com/softkoi/toktickit/issues/17</a></td>
+      </tr>
+      <tr>
+        <td><strong>Issue 6: Ticket Details and Attachment Lifecycle</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/issues/23">https://github.com/softkoi/toktickit/issues/23</a></td>
+      </tr>
+      <tr>
+        <td><strong>PR 1 — feature/1-specification</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/10">https://github.com/softkoi/toktickit/pull/10</a></td>
+      </tr>
+      <tr>
+        <td><strong>PR 2 — feature/2-requester-context</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/11">https://github.com/softkoi/toktickit/pull/11</a></td>
+      </tr>
+      <tr>
+        <td><strong>PR 3 — feature/3-create-ticket</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/12">https://github.com/softkoi/toktickit/pull/12</a></td>
+      </tr>
+      <tr>
+        <td><strong>PR 4 — feature/4-file-attachment</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/13">https://github.com/softkoi/toktickit/pull/13</a></td>
+      </tr>
+      <tr>
+        <td><strong>PR 5 — feature/5-my-tickets</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/14">https://github.com/softkoi/toktickit/pull/14</a></td>
+      </tr>
+      <tr>
+        <td><strong>PR 6 — feature/6-ticket-detail</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/15">https://github.com/softkoi/toktickit/pull/15</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>1.2 Branch & Commit Workflow</h4>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 35%;">Branch</th>
+        <th style="width: 65%;">Flow</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>main</strong></td>
+        <td>stable release branch; only receives merges from lab2-staging</td>
+      </tr>
+      <tr>
+        <td><strong>lab2-staging</strong></td>
+        <td>Lab 2 integration branch; all feature PRs target this branch</td>
+      </tr>
+      <tr>
+        <td><strong>feature/1-specification</strong></td>
+        <td>merged into lab2-staging via PR #10</td>
+      </tr>
+      <tr>
+        <td><strong>feature/2-requester-context</strong></td>
+        <td>merged into lab2-staging via PR #11</td>
+      </tr>
+      <tr>
+        <td><strong>feature/3-create-ticket</strong></td>
+        <td>merged into lab2-staging via PR #12</td>
+      </tr>
+      <tr>
+        <td><strong>feature/4-file-attachment</strong></td>
+        <td>merged into lab2-staging via PR #13</td>
+      </tr>
+      <tr>
+        <td><strong>feature/5-my-tickets</strong></td>
+        <td>merged into lab2-staging via PR #14</td>
+      </tr>
+      <tr>
+        <td><strong>feature/6-ticket-detail</strong></td>
+        <td>merged into lab2-staging via PR #15</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>1.3 Project Evidence</h4>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Item</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Kanban Board</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้า Kanban Board ที่นี่ ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>Commit History</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้า Commit History ที่นี่ ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>Directory Structure</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้า Directory Structure ที่นี่ ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>README.md</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้า README.md ที่นี่ ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>reviewer.md</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้า reviewer.md ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>1.4 PR Review Evidence</h4>
+  
+  <h5>1.4.1 Pull Requests Reviewed (PR ของเราที่ได้รับการ Review)</h5>
+
+  <h5>1.4.1.1 PR 1 — feature/1-specification → lab2-staging</h5>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Field</th>
+        <th style="width: 75%;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PR Link</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/10">#10</a></td>
+      </tr>
+      <tr>
+        <td><strong>Reviewer</strong></td>
+        <td>Benjamin DG (@bbxndg)</td>
+      </tr>
+      <tr>
+        <td><strong>Review Comment</strong></td>
+        <td>Complete .md information is ready to work on the next step.</td>
+      </tr>
+      <tr>
+        <td><strong>My Response</strong></td>
+        <td>Thank you for review Benjamin.</td>
+      </tr>
+      <tr>
+        <td><strong>Outcome</strong></td>
+        <td>Approved and merged</td>
+      </tr>
+      <tr>
+        <td><strong>PR Review Evidence</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หลักฐาน PR #10 ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h5>1.4.1.2 PR 2 — feature/2-requester-context → lab2-staging</h5>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Field</th>
+        <th style="width: 75%;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PR Link</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/11">#11</a></td>
+      </tr>
+      <tr>
+        <td><strong>Reviewer</strong></td>
+        <td>Benjamin DG (@bbxndg)</td>
+      </tr>
+      <tr>
+        <td><strong>Review Comment</strong></td>
+        <td>In schema.prisma under the Attachment model, verify audit fields and relations. Everything is ready to merge.</td>
+      </tr>
+      <tr>
+        <td><strong>My Response</strong></td>
+        <td>Thank you for the review, proceeding to merge now.</td>
+      </tr>
+      <tr>
+        <td><strong>Outcome</strong></td>
+        <td>Approved and merged</td>
+      </tr>
+      <tr>
+        <td><strong>PR Review Evidence</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หลักฐาน PR #11 ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h5>1.4.1.3 PR 3 — feature/3-create-ticket → lab2-staging</h5>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Field</th>
+        <th style="width: 75%;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PR Link</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/12">#12</a></td>
+      </tr>
+      <tr>
+        <td><strong>Reviewer</strong></td>
+        <td>Benjamin DG (@bbxndg)</td>
+      </tr>
+      <tr>
+        <td><strong>Review Comment</strong></td>
+        <td>Everything is perfect; detailed tests have been written for various scenarios.</td>
+      </tr>
+      <tr>
+        <td><strong>My Response</strong></td>
+        <td>Thank you for the review Benjamin!</td>
+      </tr>
+      <tr>
+        <td><strong>Outcome</strong></td>
+        <td>Approved and merged</td>
+      </tr>
+      <tr>
+        <td><strong>PR Review Evidence</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หลักฐาน PR #12 ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h5>1.4.1.4 PR 4 — feature/4-file-attachment → lab2-staging</h5>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Field</th>
+        <th style="width: 75%;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PR Link</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/13">#13</a></td>
+      </tr>
+      <tr>
+        <td><strong>Reviewer</strong></td>
+        <td>Benjamin DG (@bbxndg)</td>
+      </tr>
+      <tr>
+        <td><strong>Review Comment</strong></td>
+        <td>Attachment uploader and quota check validation verified and working as expected.</td>
+      </tr>
+      <tr>
+        <td><strong>My Response</strong></td>
+        <td>Thanks Benjamin! Merging to lab2-staging.</td>
+      </tr>
+      <tr>
+        <td><strong>Outcome</strong></td>
+        <td>Approved and merged</td>
+      </tr>
+      <tr>
+        <td><strong>PR Review Evidence</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หลักฐาน PR #13 ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h5>1.4.1.5 PR 5 — feature/5-my-tickets → lab2-staging</h5>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Field</th>
+        <th style="width: 75%;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PR Link</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/14">#14</a></td>
+      </tr>
+      <tr>
+        <td><strong>Reviewer</strong></td>
+        <td>Benjamin DG (@bbxndg)</td>
+      </tr>
+      <tr>
+        <td><strong>Review Comment</strong></td>
+        <td>Search, filter, sorting, and pagination logic fully tested and verified.</td>
+      </tr>
+      <tr>
+        <td><strong>My Response</strong></td>
+        <td>Thank you for the detailed review!</td>
+      </tr>
+      <tr>
+        <td><strong>Outcome</strong></td>
+        <td>Approved and merged</td>
+      </tr>
+      <tr>
+        <td><strong>PR Review Evidence</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หลักฐาน PR #14 ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h5>1.4.1.6 PR 6 — feature/6-ticket-detail → lab2-staging</h5>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Field</th>
+        <th style="width: 75%;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PR Link</strong></td>
+        <td><a href="https://github.com/softkoi/toktickit/pull/15">#15</a></td>
+      </tr>
+      <tr>
+        <td><strong>Reviewer</strong></td>
+        <td>Benjamin DG (@bbxndg)</td>
+      </tr>
+      <tr>
+        <td><strong>Review Comment</strong></td>
+        <td>Ticket detail component tests, file download, and soft-removal modal verified.</td>
+      </tr>
+      <tr>
+        <td><strong>My Response</strong></td>
+        <td>Thank you for review, ready to merge.</td>
+      </tr>
+      <tr>
+        <td><strong>Outcome</strong></td>
+        <td>Approved and merged</td>
+      </tr>
+      <tr>
+        <td><strong>PR Review Evidence</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หลักฐาน PR #15 ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h5>1.4.2 Pull Requests I Reviewed for My Partner (PR ที่เราไปช่วย Review ให้เพื่อน)</h5>
+
+  <h5>1.4.2.1 PR A — [ระบุชื่อ Feature Branch ของเพื่อน] → lab2-staging</h5>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Field</th>
+        <th style="width: 75%;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PR Link</strong></td>
+        <td><a href="https://github.com/bbxndg/toktickit/pull/1">https://github.com/bbxndg/toktickit/pull/[ระบุ]</a></td>
+      </tr>
+      <tr>
+        <td><strong>My Review Comment</strong></td>
+        <td>Everything is complete, great job Benjamin.</td>
+      </tr>
+      <tr>
+        <td><strong>Partner's Response</strong></td>
+        <td>Thank you for review Kawinpop.</td>
+      </tr>
+      <tr>
+        <td><strong>Outcome</strong></td>
+        <td>Approved and merged</td>
+      </tr>
+      <tr>
+        <td><strong>PR Review Evidence</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หลักฐานการ Review PR ของเพื่อนที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>2. Spec DD (specification.md)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Item</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>specification.md</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้าเอกสาร specification.md ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3. Tests DD and Traceability (tests.md)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Item</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>tests.md</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้าเอกสาร tests.md ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4. AI Use and Reflection (ai_use.md)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Item</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ai_use.md</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้าเอกสาร ai_use.md ที่นี่ ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>5. Development Requester Select Screen</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Screen</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Requester Select Screen (not select)</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้าเลือก Requester (ก่อนเลือก) ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>Requester Select Screen (selected)</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้าเลือก Requester (หลังเลือกตัวตน) ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>6. Working Ticket Screen: Create Mode</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Screen</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Working Ticket Screen: Create Mode</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้าสร้าง Ticket แบบปกติ ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>Working Ticket Screen: Invalid</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้าสร้าง Ticket เมื่อเกิด Validation Error ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>Working Ticket Screen: Invalid File</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot เมื่อแนบไฟล์ไม่ถูกต้อง หรือขนาดเกิน 5MB ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>Working Ticket Screen: Safe error state</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot การแสดง Error state ที่ปลอดภัย ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>7. Working My Tickets Screen</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Screen</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Working My Tickets Screen</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้าแสดงตาราง My Tickets Dashboard ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>8. Working Ticket Screen: View Mode and Attachments</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Screen</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>View Mode and Attachments</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้ารายละเอียด Ticket แสดงไฟล์แนบ active ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>View Mode and Attachments (Remove)</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot หน้ารายละเอียด Ticket แสดงไฟล์แนบที่ถูก Soft-removed ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>9. Zen Green UI and Responsive Evidence</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Screen</th>
+        <th style="width: 75%;">Screenshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Mobile</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot แสดงผลบนหน้าจอ Mobile ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>Mobile Navigate Bar</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot แถบ Navigation บน Mobile ]</div></td>
+      </tr>
+      <tr>
+        <td><strong>Tablet</strong></td>
+        <td><div class="img-placeholder">[ วางรูป Screenshot แสดงผลบนหน้าจอ Tablet ]</div></td>
+      </tr>
+    </tbody>
+  </table>
+
+</body>
+</html>
