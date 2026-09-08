@@ -1,103 +1,67 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { RequesterProvider } from './context/RequesterContext';
+import { Navbar } from './components/Navbar';
+import { RequesterSwitcher } from './components/RequesterSwitcher';
+import { CreateTicketPage } from './pages/CreateTicketPage';
+import { MyTicketsPage } from './pages/MyTicketsPage';
+import { TicketDetailPage } from './pages/TicketDetailPage';
 
-interface HealthStatus {
-  status: string;
-  service: string;
-}
+export const AppContent: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'select-requester' | 'my-tickets' | 'create-ticket' | 'ticket-detail'>('select-requester');
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
 
-interface Category {
-  id: number;
-  name: string;
-}
-
-function App() {
-  const [health, setHealth] = useState<HealthStatus | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<boolean>(false);
-
-  const checkHealth = async () => {
-    setLoading(true);
-    setError(false);
-    setHealth(null);
-    setCategories([]);
-
-    try {
-      // 1. Health check
-      const healthRes = await fetch('http://localhost:5000/api/health');
-      if (!healthRes.ok) throw new Error('API server offline');
-      const healthData: HealthStatus = await healthRes.json();
-      setHealth(healthData);
-
-      // 2. Fetch categories (if DB is connected)
-      try {
-        const catRes = await fetch('http://localhost:5000/api/categories');
-        if (catRes.ok) {
-          const catData: Category[] = await catRes.json();
-          setCategories(catData);
-        }
-      } catch (catErr) {
-        console.warn('Could not fetch categories:', catErr);
-      }
-    } catch (err) {
-      setError(true);
-      setHealth(null);
-    } finally {
-      setLoading(false);
-    }
+  const handleSelectTicket = (id: number) => {
+    setSelectedTicketId(id);
+    setActiveTab('ticket-detail');
   };
 
   return (
-    <div className="container mt-5">
-      <div className="card shadow-sm mx-auto" style={{ maxWidth: '500px' }}>
-        <div className="card-body text-center">
-          <h2 className="card-title text-primary mb-4">TokTickIT IT Service Desk</h2>
+    <div>
+      <Navbar 
+        activeTab={activeTab === 'ticket-detail' ? 'my-tickets' : activeTab} 
+        onNavigate={(tab) => setActiveTab(tab)} 
+      />
 
-          {loading && (
-            <div className="my-3 text-muted" role="status">
-              <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
-              <span>loading</span>
-            </div>
-          )}
+      <main>
+        {activeTab === 'select-requester' && (
+          <RequesterSwitcher 
+            onContinue={() => setActiveTab('my-tickets')}
+            onCancel={() => setActiveTab('select-requester')}
+          />
+        )}
 
-          {error && !loading && (
-            <div className="alert alert-danger my-3" role="alert">
-              <div>System Status: Offline</div>
-              <div>Unable to connect to TokTickIT API</div>
-            </div>
-          )}
+        {activeTab === 'my-tickets' && (
+          <MyTicketsPage
+            onNavigateToCreateTicket={() => setActiveTab('create-ticket')}
+            onSelectTicket={handleSelectTicket}
+          />
+        )}
 
-          {health && !loading && (
-            <div className="alert alert-success my-3" role="alert">
-              System Status: Online
-            </div>
-          )}
+        {activeTab === 'ticket-detail' && selectedTicketId && (
+          <TicketDetailPage
+            ticketId={selectedTicketId}
+            onBack={() => setActiveTab('my-tickets')}
+          />
+        )}
 
-          {categories.length > 0 && !loading && (
-            <div className="mt-4 text-start">
-              <h5 className="fw-bold mb-3">Categories List:</h5>
-              <ul className="list-group">
-                {categories.map((cat) => (
-                  <li key={cat.id} className="list-group-item d-flex justify-content-between align-items-center">
-                    <span>{cat.name}</span>
-                    <span className="badge bg-secondary rounded-pill">ID: {cat.id}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <button
-            className="btn btn-primary mt-3"
-            onClick={checkHealth}
-            disabled={loading}
-          >
-            Check System
-          </button>
-        </div>
-      </div>
+        {activeTab === 'create-ticket' && (
+          <CreateTicketPage
+            onNavigateToTickets={() => setActiveTab('my-tickets')}
+            onCancel={() => setActiveTab('my-tickets')}
+          />
+        )}
+      </main>
     </div>
   );
-}
+};
+
+
+export const App: React.FC = () => {
+  return (
+    <RequesterProvider>
+      <AppContent />
+    </RequesterProvider>
+  );
+};
 
 export default App;

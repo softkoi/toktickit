@@ -1,92 +1,129 @@
 # TokTickIT
 
-TokTickIT is the Lab 1 starter for CPE334. It proves the full stack works as one vertical slice:
+TokTickIT is an IT Service Desk web application developed for **CPE334: Introduction to Software Engineering in the Age of AI Agents**.
 
-`React UI -> Express REST API -> Prisma ORM -> PostgreSQL`
+The project is developed iteratively through multi-sprint laboratory milestones:
+- **Lab 1:** Foundation vertical slice (React + Express REST API + Prisma ORM + PostgreSQL).
+- **Lab 2:** Requester Ticketing MVP with complete ticket creation, dashboard filtering, attachment lifecycle management, and responsive design.
 
-## Tech stack
+---
 
-* **Frontend:** React, TypeScript, Vite, Bootstrap
-* **Backend:** Node.js, Express, TypeScript
-* **Database:** PostgreSQL, Prisma
-* **Testing:** Vitest, Supertest
+## Tech Stack
 
-## Repository structure
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, React Router
+- **Backend:** Node.js, Express, TypeScript, Prisma ORM, Multer (file upload)
+- **Database:** PostgreSQL (Docker container / Prisma Postgres)
+- **Testing:**
+  - Unit & Integration: Vitest, React Testing Library, Supertest
+  - End-to-End & Responsive: Playwright (Chromium)
 
-```text
+---
+
+## Repository Structure
+
+```
 toktickit/
-├── client/
-│   ├── index.html
-│   ├── public/
-│   └── src/
-├── server/
-│   ├── prisma/
-│   ├── tests/
-│   └── src/
+├── client/                      # React Frontend with Tailwind CSS
+│   ├── src/                     # Components, Pages, State Hooks
+│   └── tests/                   # UI Component & Responsive tests
+├── server/                      # Express + Prisma Backend
+│   ├── prisma/                  # Schema models, migrations, seed script
+│   ├── src/                     # Controllers, Services, Validation helpers
+│   └── tests/                   # Unit & API Integration test suite
 ├── docs/
-│   └── lab-01/
-│       ├── ai_use.md
-│       ├── reviewer.md
-│       └── tests.md
-├── prisma.config.ts
-├── README.md
-└── tsconfig.json
+│   └── lab-02/                  # Lab 2 Specifications, Test plan, API & UI specs
+└── package.json                 # Root scripts & configuration
 ```
 
-## Project areas
+---
 
-* **`client/`**: contains the React + Vite frontend.
-* **`server/`**: contains the Express + Prisma backend work.
-* **`docs/lab-01/`**: stores the lab submission documents.
+## Getting Started
 
-## Local setup
+### 1) Prerequisites
+- **Node.js** (v20+ recommended)
+- **Docker & Docker Compose** (for PostgreSQL)
 
-### 1) Install dependencies
-
+### 2) Database Setup
+Start the local PostgreSQL container:
 ```bash
-cd client
-npm install
-
-cd ../server
-npm install
+docker compose up -d
 ```
 
-### 2) Configure the backend
-
-Create `server/.env` and set the database connection string required by Prisma:
-
+Configure `server/.env`:
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5435/toktickit_db?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/toktickit?schema=public"
+CLIENT_ORIGIN="http://localhost:5173"
 ```
 
-### 3) Run the frontend & backend
-
+Run database migrations and seed data:
 ```bash
-# Frontend (in client/)
-cd client
-npm run dev
-
-# Backend (in server/)
 cd server
-npm run dev
+npm install
+npx prisma db push
+npm run seed
+cd ..
 ```
 
-### 4) Run checks
+### 3) Install Dependencies & Run Applications
 
-The project defines these test scripts:
+#### Client:
+```bash
+cd client
+npm install
+npm run dev
+```
+*Client runs at http://localhost:5173*
 
-* `npm run test` (in `server/` to run Vitest + Supertest API tests)
-* `npm run test` (in `client/` to run Vitest UI tests)
+#### Server:
+```bash
+cd server
+npm install
+npm run dev
+```
+*Server runs at http://localhost:3000*
 
-## Lab documentation
+---
 
-* **`docs/lab-01/ai_use.md`**: records AI usage and prompt notes.
-* **`docs/lab-01/reviewer.md`**: records peer review details.
-* **`docs/lab-01/tests.md`**: records automated test suite details.
+## Running Automated Tests
 
-## Lab 1 acceptance summary
+### 1) Backend Unit & Integration Tests (Supertest & Vitest)
+```bash
+cd server
+npm test
+```
+*Executes all unit tests (`UNIT-01` to `UNIT-09`) and API integration tests (`API-01` to `API-27`).*
 
-* `GET /api/health` returns 200 with `{ "status": "ok", "service": "TokTickIT API" }`
-* `GET /api/categories` returns the seeded categories in a stable order
-* The UI shows loading, success, and failure states
-* The repository keeps the Lab 1 workflow, docs, and tests organized
+### 2) Frontend UI Component Tests (Vitest)
+```bash
+cd client
+npm test
+```
+*Executes client rendering and interaction tests.*
+
+### 3) End-to-End & Responsive Visual Tests (Playwright)
+From the repository root:
+```bash
+npx playwright test
+npx playwright show-report
+```
+*Verifies user lifecycle flows (`E2E-01` to `E2E-07`) and captures responsive layout screenshots.*
+
+---
+
+## Lab Deliverables & Documentation
+
+### Lab 2:
+- **Sprint 2 Specification** — Comprehensive business rules and acceptance criteria (`docs/lab-02/specification.md`)
+- **REST API Specification** — Endpoint contracts, request/response formats, error codes (`docs/lab-02/api-spec.md`)
+- **UI Specification** — Zen Green design system, layout rules, screenshot requirements (`docs/lab-02/ui-spec.md`)
+- **Test Plan & Verification Records** — 48 automated test cases with 100% Pass status (`docs/lab-02/tests.md`)
+
+---
+
+## Lab 2 Acceptance Summary
+
+- **Requester Context & Isolation:** Development requester selection simulating authenticated sessions; strict data isolation across requesters with 403 Forbidden protection.
+- **Atomic Ticket Number Generation:** Format `TKT-YYYY-XXXXXX` with transaction-safe yearly rollover.
+- **Support Ticket Dashboard:** Search by keyword/number, filter by category/priority/status, pagination, and deterministic secondary sorting (`ticketNumber DESC`).
+- **Attachment Lifecycle Management:** Allowed types (JPG, PNG, WEBP, PDF ≤ 5 MB, max 5 active attachments), and audit-compliant soft-deletion requiring a reason.
+- **Zen Green Design & Responsiveness:** Fully responsive interface across Desktop (1280px), Tablet (768px), and Mobile (375px) featuring a collapsible mobile hamburger drawer and zero horizontal overflow.

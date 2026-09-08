@@ -1,34 +1,29 @@
-import express, { Express, Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import referenceRoutes from './routes/reference.routes';
+import ticketRoutes from './routes/ticket.routes';
 
 dotenv.config();
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
-
-const app: Express = express();
+export const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.get('/api/health', (req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', service: 'TokTickIT API' });
-});
+// API Routes
+app.use('/api', referenceRoutes);
+app.use('/api', ticketRoutes);
 
-app.get('/api/categories', async (req: Request, res: Response) => {
-  try {
-    const categories = await prisma.category.findMany({
-      orderBy: { id: 'asc' },
-    });
-    res.status(200).json(categories);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch categories' });
-  }
+// 404 Handler
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: 'Endpoint not found'
+    }
+  });
 });
 
 export default app;
