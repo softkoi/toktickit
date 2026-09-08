@@ -25,3 +25,5 @@ app.use((_req, res) => {
     }
   });
 });
+
+export default app;

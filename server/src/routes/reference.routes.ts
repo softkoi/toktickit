@@ -5,6 +5,17 @@ const router = Router();
 const prisma = new PrismaClient();
 
 /**
+ * GET /api/health
+ * Health check endpoint
+ */
+router.get('/health', (_req: Request, res: Response) => {
+  return res.status(200).json({
+    status: 'ok',
+    service: 'TokTickIT API'
+  });
+});
+
+/**
  * 3.1 GET /api/categories
  * Retrieve active categories sorted A-Z
  */
