@@ -7,18 +7,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum Role {
-  REQUESTER
-  IT_STAFF
-  ADMINISTRATOR
-}
-
 model User {
   id                 Int              @id @default(autoincrement())
   name               String
   email              String           @unique
   passwordHash       String
-  role               Role             @default(REQUESTER)
+  role               String           @default("REQUESTER") // "REQUESTER", "IT_STAFF", "ADMINISTRATOR"
   mustChangePassword Boolean          @default(true)
   isActive           Boolean          @default(true)
   createdAt          DateTime         @default(now())
@@ -60,7 +54,7 @@ model Ticket {
   summary           String
   description       String
   requestedPriority String          // "LOW", "MEDIUM", "HIGH"
-  itPriority        String          // "LOW", "MEDIUM", "HIGH"
+  itPriority        String          @default("MEDIUM") // "LOW", "MEDIUM", "HIGH"
   currentStatus     String          @default("NEW") // NEW, OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, RESOLVED, CLOSED, REOPENED, CANCELLED
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
