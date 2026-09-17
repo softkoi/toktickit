@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import {
   getActiveAttachmentCount,
   canAddAttachment,
@@ -14,10 +15,10 @@ describe('Unit Test: Attachment Service (TEST-011 / BR-05 / AC-06)', () => {
 
   beforeAll(async () => {
     // Seed prerequisite data for ticket
-    const requester = await prisma.requesterUser.upsert({
+    const requester = await prisma.user.upsert({
       where: { email: 'attachmentUnitTest@example.com' },
       update: { isActive: true },
-      create: { id: 998, name: 'Attachment Test User', email: 'attachmentUnitTest@example.com', isActive: true },
+      create: { id: 998, name: 'Attachment Test User', email: 'attachmentUnitTest@example.com', passwordHash: bcrypt.hashSync('Password123!', 10), role: 'REQUESTER', isActive: true },
     });
 
     const category = await prisma.category.upsert({
