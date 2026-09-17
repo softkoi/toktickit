@@ -7,15 +7,27 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model RequesterUser {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum Role {
+  REQUESTER
+  IT_STAFF
+  ADMINISTRATOR
+}
 
-  tickets   Ticket[]
+model User {
+  id                 Int              @id @default(autoincrement())
+  name               String
+  email              String           @unique
+  passwordHash       String
+  role               Role             @default(REQUESTER)
+  mustChangePassword Boolean          @default(true)
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  submittedTickets   Ticket[]         @relation("SubmittedTickets")
+  ownedTickets       Ticket[]         @relation("OwnedTickets")
+  publicComments     PublicComment[]
+  internalNotes      InternalNote[]
 }
 
 model Category {
@@ -39,26 +51,60 @@ model RelatedSystem {
 }
 
 model Ticket {
-  id                Int           @id @default(autoincrement())
-  ticketNumber      String        @unique
+  id                Int             @id @default(autoincrement())
+  ticketNumber      String          @unique
   requesterId       Int
+  ownerId           Int?
   categoryId        Int
   relatedSystemId   Int
   summary           String
   description       String
-  requestedPriority String        // "LOW", "MEDIUM", "HIGH"
-  currentStatus     String        @default("NEW") // "NEW", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  requestedPriority String          // "LOW", "MEDIUM", "HIGH"
+  itPriority        String          // "LOW", "MEDIUM", "HIGH"
+  currentStatus     String          @default("NEW") // NEW, OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, RESOLVED, CLOSED, REOPENED, CANCELLED
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
-  requester         RequesterUser @relation(fields: [requesterId], references: [id])
-  category          Category      @relation(fields: [categoryId], references: [id])
-  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+  requester         User            @relation("SubmittedTickets", fields: [requesterId], references: [id])
+  owner             User?           @relation("OwnedTickets", fields: [ownerId], references: [id])
+  category          Category        @relation(fields: [categoryId], references: [id])
+  relatedSystem     RelatedSystem   @relation(fields: [relatedSystemId], references: [id])
   attachments       Attachment[]
+  publicComments    PublicComment[]
+  internalNotes     InternalNote[]
 
   @@index([requesterId])
+  @@index([ownerId])
   @@index([categoryId])
   @@index([currentStatus])
+}
+
+model PublicComment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId])
+  @@index([authorId])
+}
+
+model InternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([ticketId])
+  @@index([authorId])
 }
 
 model Attachment {
