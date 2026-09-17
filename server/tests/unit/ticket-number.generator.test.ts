@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import { generateTicketNumber } from '../../src/utils/ticket-number.generator';
 
 const prisma = new PrismaClient();
@@ -9,10 +10,10 @@ describe('Unit Test: Ticket Number Generator (TEST-004 / BR-01)', () => {
 
   beforeAll(async () => {
     // Seed initial dependencies required by foreign keys if needed
-    await prisma.requesterUser.upsert({
+    await prisma.user.upsert({
       where: { email: 'unitTestUser@example.com' },
       update: { isActive: true },
-      create: { id: 999, name: 'Unit Test User', email: 'unitTestUser@example.com', isActive: true },
+      create: { id: 999, name: 'Unit Test User', email: 'unitTestUser@example.com', passwordHash: bcrypt.hashSync('Password123!', 10), role: 'REQUESTER', isActive: true },
     });
 
     await prisma.category.upsert({
