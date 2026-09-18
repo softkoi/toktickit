@@ -102,6 +102,30 @@
 
 ---
 
-## 5. ขั้นตอนถัดไปในแผนการทดสอบ (Upcoming Sections)
-- **ขั้นตอนที่ 4:** Administrator User Management & Security Constraints Tests Plan (`TEST-023` ถึง `TEST-030`)
+## 5. ขั้นตอนที่ 4: แผนการทดสอบ Administrator User Management & Security Constraints
+
+หมวดหมู่นี้ครอบคลุมฟีเจอร์สำหรับ Administrator ในการบริหารจัดการผู้ใช้ในระบบ การสร้างบัญชี การปฏิเสธ Email ซ้ำ และข้อกำหนดความปลอดภัยที่ห้ามละเมิด (Self-Deactivation Block & Last-Admin Block)
+
+### 5.1 ตารางข้อกำหนดความปลอดภัยของ Admin (Admin Protection Constraints)
+| ข้อกำหนด (Constraint) | เหตุผลและความปลอดภัย (Security Rationale) | การตอบสนองของระบบเมื่อมีการละเมิด |
+| :--- | :--- | :--- |
+| **Self-Deactivation Block** | ป้องกัน Admin เผลอปิดใช้งานบัญชีของตนเองจนทำให้ระบบหรือ Session ค้าง | ตอบ `400 Bad Request` พร้อม Error Code `CANNOT_DEACTIVATE_SELF` |
+| **Last-Admin Protection** | ป้องกันการปิดใช้งานหรือเปลี่ยนบทบาท Admin คนสุดท้าย ซึ่งจะทำให้ระบบไม่มีผู้ดูแลระบบเหลืออยู่เลย | ตอบ `400 Bad Request` พร้อม Error Code `CANNOT_DEACTIVATE_LAST_ADMIN` |
+| **Duplicate Email Reject** | การันตีความถูกต้องของการยืนยันตัวตน (Unique Identity) ห้ามสร้างบัญชีด้วย Email ซ้ำ | ตอบ `409 Conflict` พร้อม Error Code `EMAIL_ALREADY_EXISTS` |
+
+### 5.2 ตารางรายการทดสอบ Admin Operations (`TEST-023` ถึง `TEST-030`)
+| Test ID | Type | requirement / AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลลัพธ์ที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์ที่จะสร้าง |
+|---|---|---|---|---|---|
+| `TEST-023` | **API / Admin** | `AC-10` / `BR-14` | Administrator ดึงรายการผู้ใช้ ค้นหาด้วยชื่อ/อีเมล และกรองตาม `role` และ `isActive` | ตอบ `200 OK` คืนรายการผู้ใช้ตรงตามเงื่อนไข พร้อมข้อมูล Pagination | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-024` | **API / Admin** | `AC-10` / `BR-14` | Administrator สร้างผู้ใช้ใหม่ กำหนด 1 Role (`REQUESTER`/`IT_STAFF`/`ADMINISTRATOR`) และ Password | ตอบ `201 Created` บันทึก `passwordHash` (bcrypt) และตั้งค่า `mustChangePassword = true` | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-025` | **API / Security** | `AC-12` / `BR-15` | Administrator สร้างผู้ใช้ใหม่ด้วย Email ที่มีอยู่ในระบบแล้ว | ตอบ `409 Conflict` พร้อม Error Code `EMAIL_ALREADY_EXISTS` ปฏิเสธการสร้าง | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-026` | **API / Admin** | `AC-10` / `BR-14` | Administrator แก้ไขข้อมูลชื่อ หรือบทบาทของผู้ใช้เดิม (`PATCH /api/admin/users/:id`) | ตอบ `200 OK` อัปเดตข้อมูลผู้ใช้ในระบบสำเร็จ | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-027` | **API / Admin** | `AC-10` / `BR-14` | Administrator สลับสถานะเปิด/ปิดใช้งานบัญชีผู้ใช้ทั่วไป (`isActive = true/false`) | ตอบ `200 OK` อัปเดตสถานะ `isActive` ตามต้องการ | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-028` | **API / Security** | `AC-10` / `BR-14` | Administrator พยายามปิดใช้งานบัญชี (Deactivate) ของตนเอง (`isActive = false`) | ตอบ `400 Bad Request` พร้อมข้อความแจ้งห้าม Deactivate บัญชีตนเอง | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-029` | **API / Security** | `AC-11` / `BR-14` | Administrator พยายามปิดใช้งานหรือเปลี่ยนบทบาท Admin คนสุดท้ายของระบบ | ตอบ `400 Bad Request` พร้อมข้อความห้ามปิดใช้งาน Admin คนสุดท้าย | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-030` | **UI / Admin** | `AC-10` / `BR-14` | UI Component แสดงหน้า Administrator User Management ค้นหา กรอง และเรียกใช้ Modal สร้าง/แก้ไข | แสดงผลตามดีไซน์ Zen Green มี Validation state และปุ่ม Active Toggle ทำงานถูกต้อง | `client/src/components/lab-03/UserManagement.test.tsx` |
+
+---
+
+## 6. ขั้นตอนถัดไปในแผนการทดสอบ (Upcoming Sections)
 - **ขั้นตอนที่ 5:** Data Migration, Responsive UI, Accessibility & E2E Integration Strategy (`TEST-031` ถึง `TEST-037`)
