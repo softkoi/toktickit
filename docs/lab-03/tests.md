@@ -127,5 +127,71 @@
 
 ---
 
-## 6. ขั้นตอนถัดไปในแผนการทดสอบ (Upcoming Sections)
-- **ขั้นตอนที่ 5:** Data Migration, Responsive UI, Accessibility & E2E Integration Strategy (`TEST-031` ถึง `TEST-037`)
+## 6. ขั้นตอนที่ 5: แผนการทดสอบ Data Migration, Responsive UI, Accessibility & E2E Integration Strategy
+
+หมวดหมู่นี้ครอบคลุมการทดสอบข้อมูลเริ่มต้นระบบ (Migration/Seed), การปรับเปลี่ยนสัดส่วนหน้าจอตามขนาดอุปกรณ์ (Responsive Layout), ความเข้มของสีและการเข้าถึงของผู้พิการ (Accessibility - WCAG 2.1) และการทดสอบระบบสมบูรณ์แบบ End-to-End (E2E)
+
+### 6.1 ตารางรายการทดสอบ Migration, Responsive, Accessibility & E2E (`TEST-031` ถึง `TEST-037`)
+| Test ID | Type | requirement / AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลลัพธ์ที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์ที่จะสร้าง |
+|---|---|---|---|---|---|
+| `TEST-031` | **Regression / DB**| Migration / Seed | รัน Seed Script แบบ Idempotent (`npx prisma db seed`) แล้วรันซ้ำเพื่อทดสอบการทำงาน | รันผ่านโดยไม่เกิดข้อผิดพลาด Duplicate Key และข้อมูลเริ่มต้น (Default Users, Tickets, Notes) มีการ Hash Password (bcrypt) ครบถ้วน | `server/tests/lab-03/db-seed.test.ts` |
+| `TEST-032` | **Responsive / UI**| All UI Screens | ทดสอบการแสดงผลหน้า IT Queue และ User Management บน Viewport ขนาด Desktop (1280px) และ Mobile (375px) | Desktop แสดงผลเป็น Table view, Mobile สลับเป็น Cards view โดยไม่เกิด Text Overflow หรือ Horizontal Scroll | `client/src/components/lab-03/ResponsiveLayout.test.tsx` |
+| `TEST-033` | **Accessibility** | WCAG 2.1 Standard | ตรวจสอบการใช้งาน Keyboard Navigation (Tab, Enter, Escape) ใน Modal และฟอร์มทั้งหมด | สามารถสลับ Focus ไปยังทุก Interactive Element ได้ตามลำดับ และปิด Modal ด้วยปุ่ม Escape ได้ถูกต้อง | `client/src/components/lab-03/Accessibility.test.tsx` |
+| `TEST-034` | **Accessibility** | WCAG 2.1 Standard | ตรวจสอบ Color Contrast Ratio ของธีม Zen Green และแท็บคำเตือน Amber (Internal Note) | ค่า Contrast Ratio ไม่ต่ำกว่า 4.5:1 ตามมาตรฐาน WCAG 2.1 Level AA | `client/src/components/lab-03/Accessibility.test.tsx` |
+| `TEST-035` | **E2E / Security** | `AC-01`-`AC-02` | E2E Flow: เข้าสู่ระบบครั้งแรกด้วย Default Password -> บังคับเปลี่ยนรหัสผ่าน -> เข้าสู่ Dashboard -> Logout | ทำงานสำเร็จครบทั้ง Flow ปลอดภัย ไร้ข้อผิดพลาด Redirection Loop | `e2e/lab-03/authentication.spec.ts` |
+| `TEST-036` | **E2E / IT Staff** | `AC-06`-`AC-08` | E2E Flow: IT Staff Login -> ค้นหาตั๋วใน Queue -> กด Claim -> ปรับ IT Priority -> เขียน Internal Note -> เปลี่ยนสถานะตั๋ว | ทำงานสำเร็จครบทุกกระบวนการของ IT Staff | `e2e/lab-03/staff-ticket-flow.spec.ts` |
+| `TEST-037` | **E2E / Admin** | `AC-10`-`AC-12` | E2E Flow: Admin Login -> ค้นหา User -> สร้าง User ใหม่ -> สลับสิทธิ์ -> ทดสอบบล็อก Self-Deactivation | ทำงานสำเร็จครบทุกกระบวนการบริหารจัดการผู้ใช้ของ Administrator | `e2e/lab-03/user-administration.spec.ts` |
+
+---
+
+## 7. รายละเอียดโครงสร้างไฟล์ชุดทดสอบทั้งหมด (Master Test Directory Structure)
+
+```
+toktickit/
+├── server/
+│   └── tests/
+│       └── lab-03/
+│           ├── auth.api.test.ts              # TEST-001, TEST-002, TEST-003, TEST-005, TEST-007
+│           ├── password-policy.unit.test.ts  # TEST-004
+│           ├── authorization.api.test.ts     # TEST-009, TEST-010, TEST-011, TEST-014
+│           ├── requester-regression.api.test.ts # TEST-012, TEST-013
+│           ├── staff-queue.api.test.ts       # TEST-015
+│           ├── staff-ticket-detail.api.test.ts # TEST-016, TEST-017, TEST-018, TEST-020
+│           ├── state-machine.unit.test.ts    # TEST-019
+│           ├── comments-notes.api.test.ts    # TEST-008, TEST-021
+│           ├── users-admin.api.test.ts       # TEST-023, TEST-024, TEST-025, TEST-026, TEST-027, TEST-028, TEST-029
+│           └── db-seed.test.ts               # TEST-031
+├── client/
+│   └── src/
+│       └── components/
+│           └── lab-03/
+│               ├── Login.test.tsx            # TEST-016 (UI)
+│               ├── StaffTicketDetail.test.tsx # TEST-022
+│               ├── UserManagement.test.tsx   # TEST-030
+│               ├── ResponsiveLayout.test.tsx # TEST-032
+│               └── Accessibility.test.tsx    # TEST-033, TEST-034
+└── e2e/
+    └── lab-03/
+        ├── authentication.spec.ts            # TEST-006, TEST-035
+        ├── staff-ticket-flow.spec.ts         # TEST-036
+        └── user-administration.spec.ts       # TEST-037
+```
+
+---
+
+## 8. สรุปความครอบคลุมเกณฑ์การตรวจรับงาน (Acceptance Criteria Mapping Traceability)
+
+| Acceptance Criteria | ข้อกำหนดการตรวจรับงาน (Requirement Description) | Test IDs ที่รองรับการทดสอบ |
+| :--- | :--- | :--- |
+| **`AC-01`** | Single Active Session with Cookie-based auth & Password policy | `TEST-001`, `TEST-002`, `TEST-004`, `TEST-007` |
+| **`AC-02`** | First-login mandatory password change flow | `TEST-005`, `TEST-006`, `TEST-035` |
+| **`AC-03`** | Requester ownership isolation & regression from Lab 2 | `TEST-010`, `TEST-012`, `TEST-013` |
+| **`AC-04`** | Internal Notes visibility restricted strictly to IT Staff/Admin | `TEST-008`, `TEST-021`, `TEST-022` |
+| **`AC-05`** | Inactive account login restriction & access blocking | `TEST-003` |
+| **`AC-06`** | IT Ticket Queue listing, search, filter, sort & pagination | `TEST-015`, `TEST-036` |
+| **`AC-07`** | Ticket ownership claim, reassign & detail views | `TEST-016`, `TEST-017`, `TEST-022`, `TEST-036` |
+| **`AC-08`** | IT Priority management & State machine status transition rules | `TEST-018`, `TEST-019`, `TEST-020`, `TEST-036` |
+| **`AC-09`** | Requester self-resolved problem notification trigger | `TEST-014` |
+| **`AC-10`** | Administrator user management CRUD & activation toggle | `TEST-023`, `TEST-024`, `TEST-026`, `TEST-027`, `TEST-030`, `TEST-037` |
+| **`AC-11`** | Self-deactivation block & Last-Admin protection constraint | `TEST-028`, `TEST-029`, `TEST-037` |
+| **`AC-12`** | Role-Based Access Control (RBAC) & duplicate email rejection | `TEST-009`, `TEST-011`, `TEST-025` |
