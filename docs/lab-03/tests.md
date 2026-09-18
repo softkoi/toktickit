@@ -75,7 +75,33 @@
 
 ---
 
-## 4. ขั้นตอนถัดไปในแผนการทดสอบ (Upcoming Sections)
-- **ขั้นตอนที่ 3:** IT Staff Workflow & Queue / Ticket Operations Tests Plan (`TEST-015` ถึง `TEST-022`)
+## 4. ขั้นตอนที่ 3: แผนการทดสอบ IT Staff Workflow, Queue Query, Ticket Ownership, Priority & Notes Visibility
+
+หมวดหมู่นี้ครอบคลุมการทำงานของ IT Staff ในการค้นหาตั๋วใน Queue, การรับตั๋ว (Claim/Reassign), การปรับเปลี่ยนความสำคัญ (IT Priority), การควบคุมสถานะตั๋วตาม State Machine Matrix และการจัดการข้อความ Internal Note
+
+### 4.1 ตารางกฎการเปลี่ยนสถานะตั๋ว (Ticket State Machine Matrix)
+| สถานะปัจจุบัน (Current State) | สถานะถัดไปที่อนุญาต (Allowed Next State) | การกระทำที่กระตุ้น (Trigger Action) | สิทธิ์ที่สามารถทำได้ |
+| :--- | :--- | :--- | :--- |
+| `NEW` | `IN_PROGRESS`, `CANCELLED` | IT Staff กด Claim ตั๋ว หรือเริ่มปฏิบัติตามคำร้อง | IT Staff / Admin |
+| `IN_PROGRESS` | `WAITING_FOR_REQUESTER`, `RESOLVED`, `CANCELLED` | สอบถามข้อมูลเพิ่มจาก Requester หรือแก้ปัญหาเสร็จสิ้น | IT Staff / Admin |
+| `WAITING_FOR_REQUESTER` | `IN_PROGRESS`, `RESOLVED` | Requester ตอบกลับ หรือ IT Staff ทำงานต่อหลังได้ข้อมูล | IT Staff / Admin / Requester (ผ่านปุ่ม Resolved) |
+| `RESOLVED` | `CLOSED`, `IN_PROGRESS` | ตรวจรับงานสมบูรณ์ หรือ Requester แจ้งว่าปัญหายังคงอยู่ (Reopen) | IT Staff / Admin |
+| `CLOSED` / `CANCELLED` | *(Final State)* | ไม่อนุญาตให้เปลี่ยนสถานะใดๆ ต่อไปได้อีก | - |
+
+### 4.2 ตารางรายการทดสอบ IT Staff Operations (`TEST-015` ถึง `TEST-022`)
+| Test ID | Type | requirement / AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลลัพธ์ที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์ที่จะสร้าง |
+|---|---|---|---|---|---|
+| `TEST-015` | **API / IT Staff** | `AC-06` / `BR-10` | IT Staff ดึงข้อมูล Queue พร้อมระบุตัวกรอง `search`, `status`, `priority`, `sortBy` และ `page/limit` | ตอบ `200 OK` คืนรายการตั๋วตรงตามเงื่อนไขการค้นหากรอง และข้อมูล Pagination (`totalCount`, `totalPages`) | `server/tests/lab-03/staff-queue.api.test.ts` |
+| `TEST-016` | **API / IT Staff** | `AC-07` / `BR-11` | IT Staff กดรับตั๋วที่ไม่มียอดเจ้าของ (`POST /api/staff/tickets/:id/claim`) | ตอบ `200 OK` อัปเดต `ownerId` ให้กลายเป็น User ID ของ IT Staff ผู้เรียกใช้ API | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| `TEST-017` | **API / IT Staff** | `AC-07` / `BR-11` | IT Staff มอบหมายตั๋วใหม่ให้ IT Staff หรือ Admin รายอื่น (`PATCH /api/staff/tickets/:id/reassign`) | ตอบ `200 OK` อัปเดต `ownerId` เป็น User ID ใหม่ของ IT Staff ที่ระบุอย่างถูกต้อง | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| `TEST-018` | **API / IT Staff** | `AC-08` / `BR-12` | IT Staff ปรับเปลี่ยนระดับความสำคัญของตั๋ว (`PATCH /api/staff/tickets/:id/priority`) | ตอบ `200 OK` อัปเดตค่า `itPriority` เป็น `LOW`, `MEDIUM`, `HIGH`, หรือ `URGENT` ตามที่ส่งมา | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| `TEST-019` | **Unit / State Machine**| `AC-08` / `BR-13` | ทดสอบการเปลี่ยนสถานะตั๋วที่ถูกต้องตาม State Machine Matrix | Function `validateStateTransition()` คืนค่า `true` เมื่อเปลี่ยนสถานะตามลำดับที่อนุญาต | `server/tests/lab-03/state-machine.unit.test.ts` |
+| `TEST-020` | **API / State Machine**| `AC-08` / `BR-13` | IT Staff พยายามเปลี่ยนสถานะตั๋วที่ผิดกฎ State Machine (เช่น จาก `NEW` ไป `CLOSED` โดยตรง) | ตอบ `400 Bad Request` พร้อม Error Message แจ้งว่าการเปลี่ยนสถานะนี้ไม่อนุญาต | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| `TEST-021` | **API / Notes** | `AC-04` / `BR-06` | IT Staff สร้าง Public Comment และสร้าง Internal Note สำหรับบันทึกภายใน | ตอบ `201 Created` โดย Public Comment มองเห็นได้ทั่วไป แต่ Internal Note มีเฉพาะ IT Staff/Admin ที่มองเห็น | `server/tests/lab-03/comments-notes.api.test.ts` |
+| `TEST-022` | **UI / IT Staff** | `AC-07` / `BR-06` | UI Component แสดงผลหน้า Staff Ticket Detail แยกแท็บ Public Comment และ Internal Note | แท็บ Internal Note แสดงผลธีม Amber พร้อมแสดง Badge คำเตือนความปลอดภัยชัดเจน | `client/src/components/lab-03/StaffTicketDetail.test.tsx` |
+
+---
+
+## 5. ขั้นตอนถัดไปในแผนการทดสอบ (Upcoming Sections)
 - **ขั้นตอนที่ 4:** Administrator User Management & Security Constraints Tests Plan (`TEST-023` ถึง `TEST-030`)
 - **ขั้นตอนที่ 5:** Data Migration, Responsive UI, Accessibility & E2E Integration Strategy (`TEST-031` ถึง `TEST-037`)
