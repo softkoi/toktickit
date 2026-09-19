@@ -1,93 +1,197 @@
 # Lab 3 — เอกสารแผนการทดสอบและตารางสรุปการทดสอบ (Master Test Plan & Test Matrix)
 
-> **สถานะ:** เอกสารแผนการทดสอบระบบ (System Test Plan & Quality Assurance Strategy)  
+> **สถานะ:** เอกสารแผนการทดสอบระบบ (System Test Plan & Quality Assurance Strategy) - Phase 3 (Test-Driven Design Documentation)  
 > **กลุ่มเป้าหมาย:** QA Engineer / Backend & Frontend Developers / AI Coding Agent  
-> **วัตถุประสงค์:** กำหนดแผนการทดสอบระบบ TokTickIT ใน Lab 3 ครอบคลุมทุกระดับการทดสอบ (Unit, API Integration, UI Component, Responsive Layout, E2E) เพื่อการันตีว่าทุกเกณฑ์การตรวจรับงาน (Acceptance Criteria: `AC-01` ถึง `AC-12`) และกฎทางธุรกิจ (Business Rules: `BR-01` ถึง `BR-15`) มีการทดสอบรองรับครบ 100%
+> **วัตถุประสงค์:** กำหนดแผนการทดสอบระบบ TokTickIT ใน Lab 3 ครอบคลุมทุกระดับการทดสอบ (Unit, API Integration, UI Component, Security, Responsive Layout, Regression, E2E) เพื่อการันตีว่าทุกเกณฑ์การตรวจรับงาน (`AC-01` ถึง `AC-12`) และกฎทางธุรกิจ (`BR-01` ถึง `BR-15`) มีการทดสอบรองรับครบ 100% ก่อนลงมือพัฒนาโค้ดจริง
 
 ---
 
-## 1. ภาพรวมกลยุทธ์การทดสอบ (Test Strategy & Tooling)
+## 1. ภาพรวมกลยุทธ์การทดสอบ (Test Strategy & Tooling Framework)
 
-การทดสอบในระบบ TokTickIT ใน Lab 3 ถูกแบ่งออกเป็น 5 ระดับชั้น (Test Layers) เพื่อสร้างความมั่นใจในสถาปัตยกรรมความปลอดภัย การยืนยันตัวตน (Authentication) การกำหนดสิทธิ์ตามบทบาท (Role-Based Authorization) และกระบวนการทำงานของ IT Staff และ Administrator:
+การทดสอบระบบ TokTickIT ใน Lab 3 ถูกออกแบบภายใต้แนวคิด **Test-Driven Design (Test DD)** โดยการกำหนดรายละเอียดแผนการทดสอบ และ Test Case ล่วงหน้า 5 ระดับชั้น (Test Layers):
 
 ```
                   ┌───────────────────────────────┐
-                  │       E2E Flow Tests          │ (Playwright)
+                  │       E2E Flow Tests          │ (Playwright E2E)
                   ├───────────────────────────────┤
-                  │   Responsive Layout Tests     │ (Playwright Visual)
+                  │  Responsive & Accessibility   │ (Playwright Visual & axe-core)
                   ├───────────────────────────────┤
                   │     UI Component Tests        │ (Vitest / React Testing Library)
                   ├───────────────────────────────┤
-                  │    API Integration Tests      │ (Supertest / Vitest)
+                  │    API Integration Tests      │ (Supertest / Vitest API)
                   ├───────────────────────────────┤
-                  │       Unit Service Tests      │ (Vitest / Jest)
+                  │       Unit Service Tests      │ (Vitest Unit)
                   └───────────────────────────────┘
 ```
 
-### 1.1 ตารางสรุป Authorization Matrix ตามข้อกำหนดสิทธิ์ใน Lab 3
+### ประเภทการทดสอบ (Test Types Mapping)
+1. **Unit Test**: ทดสอบ Logic/Service ฟังก์ชันย่อยในระดับ Isolated Code (เช่น Password hashing, Validation schemas, State machine transitions)
+2. **API Test (Integration)**: ทดสอบ REST API Endpoints ผ่าน HTTP Requests จริง รวมถึง Authentication, Status Codes (200, 400, 401, 403, 409) และ Cookies
+3. **UI Test (Component)**: ทดสอบ React Components, Form validation, Loading states, และ User Event Handling
+4. **Security Test**: ทดสอบ RBAC Authorization, Session Invalidation, Password Strength Boundary, Inactive Account Locking
+5. **Regression Test**: การันตีฟีเจอร์เดิมจาก Lab 2 (Requester Ticket Creation, Status Viewing, Attachment) และ Data Migration ยังคงทำงานได้อย่างถูกต้อง
+6. **Responsive & Accessibility Test**: ทดสอบ Layout บน Desktop/Mobile (Table vs Cards) และ WCAG 2.1 Standard
+7. **E2E Test**: ทดสอบ User Journey การใช้งานครบวงจรตั้งแต่ Login ถึงการปิด Ticket หรือการบริหารจัดการ User
+
+---
+
+## 2. ขั้นตอนที่ 1: แผนการทดสอบ Authentication, Password Boundary & Session Security
+
+หมวดหมู่นี้ครอบคลุมการยืนยันตัวตน, ข้อกำหนดรหัสผ่าน, บัญชีที่ถูกระงับ (Inactive), การบังคับเปลี่ยนรหัสผ่านในการเข้าใช้งานครั้งแรก (First-Login Mandatory Password Change) และการจัดการ Session หลัง Logout
+
+| Test ID | Type | requirement / AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลลัพธ์ที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์ที่จะสร้าง |
+|---|---|---|---|---|---|
+| `TEST-001` | **API / Security** | `AC-01` / `BR-01` | เข้าสู่ระบบด้วย Email และ Password ที่ถูกต้อง (`POST /api/auth/login`) | ตอบ `200 OK` ฝัง HTTP-only Session Cookie (`toktickit_session`) และคืนค่า User Profile พร้อม Role (`REQUESTER`, `IT_STAFF`, `ADMINISTRATOR`) | `server/tests/lab-03/auth.api.test.ts` |
+| `TEST-002` | **API / Security** | `AC-01` / `BR-01` | เข้าสู่ระบบด้วย Email หรือ Password ที่ไม่ถูกต้อง | ตอบ `401 Unauthorized` พร้อม Error Code `INVALID_CREDENTIALS` โดยไม่ leak ข้อมูลว่า Email มีในระบบหรือไม่ | `server/tests/lab-03/auth.api.test.ts` |
+| `TEST-003` | **API / Security** | `AC-05` / `BR-02` | เข้าสู่ระบบด้วยบัญชีผู้ใช้ที่ถูกระงับสิทธิ์ใช้งาน (`isActive = false`) | ตอบ `401 Unauthorized` พร้อม Error Message แจ้งว่าบัญชีถูกระงับสิทธิ์ โดยปฏิเสธการออก Session Cookie | `server/tests/lab-03/auth.api.test.ts` |
+| `TEST-004` | **Unit / Security** | `AC-01` / `BR-03` | ตรวจสอบ Password Boundary & Validation rules (ความยาว 8-128 ตัวอักขระ เพื่อป้องกัน bcrypt DoS attack, มีตัวพิมพ์ใหญ่ พิมพ์เล็ก ตัวเลข และอักขระพิเศษ) | Function `validatePasswordPolicy()` คืนค่า `false` สำหรับรหัสผ่านที่สั้นกว่า 8 ตัว, ยาวเกิน 128 ตัว หรือขาดอักขระตามเกณฑ์ และคืนค่า `true` เมื่อถูกต้อง | `server/tests/lab-03/password-policy.unit.test.ts` |
+| `TEST-005` | **API / Security** | `AC-02` / `BR-03` | บัญชีสร้างใหม่ที่มี `mustChangePassword = true` ทำการเปลี่ยนรหัสผ่านเป็นรหัสผ่านใหม่ที่ผิดเกณฑ์ Boundary | ตอบ `400 Bad Request` พร้อมระบุข้อผิดพลาดเงื่อนไข Password Policy ที่ไม่ผ่าน | `server/tests/lab-03/auth.api.test.ts` |
+| `TEST-006` | **E2E / Security** | `AC-02` / `BR-04` | First-Login Mandatory Flow: บัญชีที่มี `mustChangePassword = true` เข้าสู่ระบบครั้งแรก | ระบบตรวจพบ `mustChangePassword = true` บังคับ Redirect ไปยังหน้าเปลี่ยนรหัสผ่าน และบล็อกการเข้าถึงหน้า Dashboard จนกว่าจะเปลี่ยนรหัสผ่านสำเร็จ (`mustChangePassword` เปลี่ยนเป็น `false`) | `e2e/lab-03/authentication.spec.ts` |
+| `TEST-007` | **API / Security** | `AC-01` / `BR-05` | ออกจากระบบ (`POST /api/auth/logout`) และทดสอบการเรียกใช้ Protected Endpoint หลัง Logout | ตอบ `200 OK` ล้าง Cookie `toktickit_session` และทำลาย Session บน Server เมื่อเรียกขอ Protected Endpoint ถัดไป จะตอบ `401 Unauthorized` ทันที | `server/tests/lab-03/auth.api.test.ts` |
+
+---
+
+## 3. ขั้นตอนที่ 2: แผนการทดสอบ RBAC Authorization Matrix & Requester Regression
+
+หมวดหมู่นี้ครอบคลุมการตรวจสอบสิทธิ์การใช้งานตามบทบาท (Role-Based Access Control) สำหรับทุก Endpoint และการันตีว่าฟีเจอร์เดิมของ Requester ใน Lab 2 ไม่พังเสียหาย (Regression Testing)
+
+### 3.1 ตารางสิทธิ์และการปฏิเสธการเข้าถึง (Authorization Matrix)
 | บทบาท (Role) | สิทธิ์และการทำงานที่อนุญาต (Permitted Actions) | สิ่งที่ไม่อนุญาต (Forbidden Actions) |
 | :--- | :--- | :--- |
-| **Requester** | - เข้าถึงเฉพาะตั๋วและไฟล์แนบของตนเอง (`ownerId/requesterId`) <br>- สร้าง ตรวจดู และจัดการตั๋วของตนเอง <br>- เขียน Public Comment ได้ <br>- กดปุ่ม "Problem Appears Resolved" (แจ้งสถานะปัญหาคลี่คลาย) | - ห้ามเข้าถึงตั๋วของ Requester คนอื่น (`403 Forbidden`) <br>- ห้ามดูหรือเขียน Internal Note (`403 Forbidden`) <br>- ห้ามเปลี่ยนสถานะตั๋วเป็น `RESOLVED` หรือ `CLOSED` เองโดยตรง <br>- ห้ามเข้าถึง API / หน้า User Management (`403 Forbidden`) |
-| **IT Staff** | - เข้าถึงและค้นหา IT Ticket Queue ทั้งหมด <br>- เปิดดูรายละเอียดตั๋ว กด Claim หรือ Reassign Owner ให้ IT Staff/Admin <br>- ปรับเปลี่ยน IT Priority และเปลี่ยนสถานะตั๋วตาม State Transition Matrix <br>- โพสต์ Public Comment และสร้าง Internal Note | - ห้ามเข้าถึง API / หน้า Administrator User Management (`403 Forbidden`) |
-| **Administrator** | - จัดการบัญชีผู้ใช้ผ่านหน้า User Management เท่านั้น <br>- ดูรายการ ค้นหา กรองบทบาท สร้างผู้ใช้ใหม่ (กำหนด 1 Role และรหัสผ่านเริ่มต้น) <br>- แก้ไขข้อมูลผู้ใช้ สลับ Active/Inactive และ Reset รหัสผ่านเริ่มต้น | - โดย Default ไม่ยุ่งเกี่ยวกับการจัดการตั๋วการทำงานของ IT Staff (เว้นแต่จะได้รับสิทธิ์เฉพาะ) <br>- ห้ามปิดใช้งาน (Deactivate) บัญชีของตนเอง (`400 Bad Request`) <br>- ห้ามปิดใช้งาน Admin คนสุดท้ายของระบบ (`400 Bad Request`) |
+| **Requester** | - เข้าถึงเฉพาะตั๋วและไฟล์แนบของตนเอง (`ownerId/requesterId`) <br>- สร้าง ตรวจดูรายการ และดูรายละเอียดตั๋วของตนเอง <br>- เขียน Public Comment ได้ <br>- กดปุ่ม "Problem Appears Resolved" | - ห้ามเข้าถึงตั๋วหรือไฟล์แนบของ Requester คนอื่น (`403 Forbidden`) <br>- ห้ามดูหรือสร้าง Internal Note (`403 Forbidden`) <br>- ห้ามเปลี่ยนสถานะตั๋วข้ามไป `RESOLVED` หรือ `CLOSED` เองโดยตรง <br>- ห้ามเข้าถึง API / หน้า Admin User Management (`403 Forbidden`) |
+| **IT Staff** | - เข้าถึงและค้นหา IT Ticket Queue ทั้งหมด <br>- เปิดดูรายละเอียดตั๋ว กด Claim หรือ Reassign ให้ IT Staff/Admin <br>- ปรับเปลี่ยน IT Priority และเปลี่ยนสถานะตั๋วตาม State Machine <br>- โพสต์ Public Comment และสร้าง Internal Note | - ห้ามเข้าถึง API / หน้า Administrator User Management (`403 Forbidden`) |
+| **Administrator** | - จัดการบัญชีผู้ใช้ผ่านหน้า User Management เท่านั้น <br>- ดูรายการ ค้นหา กรองบทบาท สร้างผู้ใช้ใหม่ <br>- แก้ไขข้อมูลผู้ใช้ สลับ Active/Inactive และ Reset รหัสผ่านเริ่มต้น | - ห้ามปิดใช้งาน (Deactivate) บัญชีของตนเอง (`400 Bad Request`) <br>- ห้ามปิดใช้งาน หรือลดบทบาท Admin คนสุดท้ายของระบบ (`400 Bad Request`) |
+
+### 3.2 ตารางรายการทดสอบ Authorization & Regression (`TEST-008` ถึง `TEST-014`)
+| Test ID | Type | requirement / AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลลัพธ์ที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์ที่จะสร้าง |
+|---|---|---|---|---|---|
+| `TEST-008` | **API / Security** | `AC-04` / `BR-06` | ผู้ใช้บทบาท Requester พยายามดึงข้อมูลหรือสร้าง Internal Note (`GET/POST /api/staff/tickets/:id/notes`) | ตอบ `403 Forbidden` ปฏิเสธการเข้าถึงและไม่เปิดเผยเนื้อหา Internal Note แก่ Requester | `server/tests/lab-03/comments-notes.api.test.ts` |
+| `TEST-009` | **API / Security** | `AC-12` / `BR-07` | ผู้ใช้บทบาท Requester หรือ IT Staff พยายามเรียกใช้ Admin Endpoints (`/api/admin/users/*`) | ตอบ `403 Forbidden` พร้อม Error Code `INSUFFICIENT_PERMISSIONS` ปฏิเสธการเข้าถึง | `server/tests/lab-03/authorization.api.test.ts` |
+| `TEST-010` | **API / Security** | `AC-03` / `BR-08` | Requester พยายามเข้าถึงตั๋วของ Requester คนอื่น โดยการส่ง `requesterId` อื่นมาใน Query/Body | ตอบ `403 Forbidden` โดย Server ยึด Identity จาก Session (`req.user`) เท่านั้น ป้องกันการแอบอ้างสิทธิ์ | `server/tests/lab-03/authorization.api.test.ts` |
+| `TEST-011` | **API / Security** | `AC-12` / `BR-07` | IT Staff พยายามเรียกใช้ Endpoint สำหรับ Administrator (`POST /api/admin/users`) | ตอบ `403 Forbidden` ไม่อนุญาตให้ IT Staff จัดการข้อมูลผู้ใช้ในระบบ | `server/tests/lab-03/authorization.api.test.ts` |
+| `TEST-012` | **API / Regression** | `AC-03` / Lab 2 | Requester สร้าง Ticket ใหม่พร้อมแนบไฟล์รูปภาพ (`POST /api/tickets`) | ตอบ `201 Created` บันทึกตั๋วและไฟล์แนบลงฐานข้อมูลสำเร็จแบบเดียวกับ Lab 2 | `server/tests/lab-03/requester-regression.api.test.ts` |
+| `TEST-013` | **API / Regression** | `AC-03` / Lab 2 | Requester เรียกดูรายการตั๋วและรายละเอียดตั๋วของตนเอง (`GET /api/tickets`) | ตอบ `200 OK` คืนรายการเฉพาะตั๋วของ Requester รายนั้นตามเดิม | `server/tests/lab-03/requester-regression.api.test.ts` |
+| `TEST-014` | **API / Security** | `AC-09` / `BR-09` | Requester กดปุ่มแจ้งปัญหาคลี่คลาย ("Problem Appears Resolved") บนตั๋วตนเอง | ตอบ `200 OK` ปรับสถานะตั๋วเป็น `WAITING_FOR_REQUESTER` หรือ `IN_PROGRESS` โดยไม่อนุญาตให้เปลี่ยนสิทธิ์ข้ามไป `CLOSED` เอง | `server/tests/lab-03/authorization.api.test.ts` |
 
 ---
 
-## 2. ตารางแผนการทดสอบหลัก (Master Test Matrix)
+## 4. ขั้นตอนที่ 3: แผนการทดสอบ IT Staff Workflow, Queue Query, Ticket Ownership, Priority & Notes Visibility
 
-> **ข้อกำหนดการครอบคลุม:** ทุก Acceptance Criteria (`AC-01` ถึง `AC-12`) จาก `specification.md` มีอย่างน้อย 1 กรณีทดสอบจับคู่ไว้โดยสมบูรณ์
+หมวดหมู่นี้ครอบคลุมการทำงานของ IT Staff ในการค้นหาตั๋วใน Queue, การรับตั๋ว (Claim/Reassign), การปรับเปลี่ยนความสำคัญ (IT Priority), การควบคุมสถานะตั๋วตาม State Machine Matrix และการจัดการข้อความ Internal Note
 
-| Test ID | Type | AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์จริง | สถานะ |
-|---|---|---|---|---|---|---|
-| `TEST-001` | **API** | `AC-01` | เข้าสู่ระบบด้วย Email และ Password ที่ถูกต้อง (`POST /api/auth/login`) | ตอบ `200 OK` ฝัง HTTP-only Session Cookie และคืนค่าข้อมูลโปรไฟล์พร้อมบทบาท (Role) | `server/tests/lab-03/auth.api.test.ts` | **Pass** |
-| `TEST-002` | **API** | `AC-05` | เข้าสู่ระบบด้วยบัญชีผู้ใช้ที่ถูกปิดใช้งาน (`isActive = false`) | ตอบ `401 Unauthorized` พร้อมข้อความแจ้งเตือนความปลอดภัย โดยไม่ leak ข้อมูลบัญชี | `server/tests/lab-03/auth.api.test.ts` | **Pass** |
-| `TEST-003` | **API** | `AC-01` | ออกจากระบบ (`POST /api/auth/logout`) | ตอบ `200 OK` ทำลาย Session บน Server และล้าง Cookie ออกจาก Browser | `server/tests/lab-03/auth.api.test.ts` | **Pass** |
-| `TEST-004` | **E2E** | `AC-02` | บัญชีผู้ใช้ใหม่ที่มี `mustChangePassword = true` เข้าใช้งานระบบครั้งแรก | ระบบบังคับเปิดหน้าเปลี่ยนรหัสผ่าน และไม่อนุญาตให้เข้าหน้าปกติจนกว่าจะเปลี่ยนรหัสผ่านสำเร็จ | `e2e/lab-03/authentication.spec.ts` | **Pass** |
-| `TEST-005` | **API** | `AC-02` | เปลี่ยนรหัสผ่านใหม่ผิดกติกาความปลอดภัย (สั้นกว่า 8 ตัว หรือขาดอักขระพิเศษ) | ตอบ `400 Bad Request` พร้อมแจ้งเงื่อนไขที่ยังไม่ผ่าน | `server/tests/lab-03/auth.api.test.ts` | **Pass** |
-| `TEST-006` | **API** | `AC-03` | Requester พยายามเข้าถึงตั๋วของ Requester คนอื่นโดยระบุ `requesterId` อื่นใน Client | ตอบ `403 Forbidden` โดยระบบยึด identity จาก Session เท่านั้น | `server/tests/lab-03/authorization.api.test.ts` | **Pass** |
-| `TEST-007` | **API** | `AC-04` | Requester เรียกขอข้อมูล หรือพยายามเขียน Internal Note (`GET/POST /api/staff/tickets/:id/notes`) | ตอบ `403 Forbidden` ไม่อนุญาตให้เข้าถึงหรือเห็นเนื้อหา Internal Note | `server/tests/lab-03/comments-notes.api.test.ts` | **Pass** |
-| `TEST-008` | **API** | `AC-06` | IT Staff ดึงข้อมูล IT Ticket Queue พร้อมการค้นหาและกรองสถานะ/ความสำคัญ | ตอบ `200 OK` คืนรายการตั๋วทั้งหมดในระบบพร้อมข้อมูล Pagination | `server/tests/lab-03/staff-queue.api.test.ts` | **Pass** |
-| `TEST-009` | **API** | `AC-07` | IT Staff ทำการ Claim ตั๋วที่ยังไม่มีเจ้าของ หรือ Reassign ตั๋วให้ IT Staff คนอื่น | ตอบ `200 OK` อัปเดต `ownerId` เป็นผู้ใช้งาน IT Staff/Admin ที่ระบุอย่างถูกต้อง | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | **Pass** |
-| `TEST-010` | **API** | `AC-08` | IT Staff ปรับเปลี่ยนสถานะตั๋วที่ไม่ถูกต้องตาม State Transition Matrix (เช่น `NEW` -> `CLOSED`) | ตอบ `400 Bad Request` พร้อมปฏิเสธการเปลี่ยนสถานะตั๋ว | `server/tests/lab-03/staff-ticket-detail.api.test.ts` | **Pass** |
-| `TEST-011` | **API** | `AC-09` | Requester กดแจ้งปัญหาคลี่คลาย ("Problem Appears Resolved") | ตอบ `200 OK` ปรับสถานะเป็น `WAITING_FOR_REQUESTER` โดยไม่อนุญาตให้ปิดตั๋วถาวรเอง | `server/tests/lab-03/authorization.api.test.ts` | **Pass** |
-| `TEST-012` | **API** | `AC-10` | Administrator พยายามปิดใช้งานบัญชี (Deactivate) ของตนเอง | ตอบ `400 Bad Request` พร้อมแจ้งข้อความห้าม Deactivate บัญชีตนเอง | `server/tests/lab-03/users-admin.api.test.ts` | **Pass** |
-| `TEST-013` | **API** | `AC-11` | Administrator พยายามปิดใช้งาน หรือเปลี่ยนบทบาท Admin คนสุดท้ายในระบบ | ตอบ `400 Bad Request` พร้อมปฏิเสธการทำงานเพื่อป้องกันระบบขาด Admin | `server/tests/lab-03/users-admin.api.test.ts` | **Pass** |
-| `TEST-014` | **API** | `AC-12` | ผู้ใช้บทบาท Requester หรือ IT Staff เรียกใช้ API จัดการผู้ใช้ (`/api/admin/*`) | ตอบ `403 Forbidden` ปฏิเสธการเข้าถึง endpoint สำหรับ Administrator | `server/tests/lab-03/authorization.api.test.ts` | **Pass** |
-| `TEST-015` | **API** | `AC-12` | Administrator สร้างบัญชีผู้ใช้ใหม่ด้วย Email ที่มีอยู่ในระบบแล้ว | ตอบ `409 Conflict` พร้อมระบุว่า Email นี้ถูกใช้งานแล้ว | `server/tests/lab-03/users-admin.api.test.ts` | **Pass** |
-| `TEST-016` | **UI** | `AC-01` | แสดงหน้าจอ Login และฟอร์มกรอกข้อมูลตามสไตล์ Zen Green | แสดงผล Input, Validation State และ Loading Spinner ได้ถูกต้อง | `client/src/components/lab-03/Login.test.tsx` | **Pass** |
-| `TEST-017` | **UI** | `AC-06` | แสดงผลตาราง IT Ticket Queue บน Desktop และปรับเป็น Cards บน Mobile | แสดง Badges, Pagination และสลับการแสดงผลตาม Viewport ได้ถูกต้อง | `client/src/components/lab-03/StaffTicketQueue.test.tsx` | **Pass** |
-| `TEST-018` | **UI** | `AC-07` | แสดงผลหน้า IT Staff Ticket Detail แยกแถบ Public Comment และ Internal Note ชัดเจน | แถบ Internal Note มีสีเตือน Amber พร้อมข้อความเตือนความปลอดภัย | `client/src/components/lab-03/StaffTicketDetail.test.tsx` | **Pass** |
-| `TEST-019` | **UI** | `AC-10` | แสดงหน้าจอ Administrator User Management พร้อมค้นหาและ Modal สร้างผู้ใช้ | ปุ่ม Edit, Toggle Active และ Modal แสดงผลตามกฎ Zen Green | `client/src/components/lab-03/UserManagement.test.tsx` | **Pass** |
-| `TEST-020` | **E2E** | `AC-06`-`AC-08`| End-to-End Flow: IT Staff เข้าสู่ระบบ → ค้นหาตั๋วใน Queue → เปิด Detail → Claim ตั๋ว → เขียน Internal Note → ปรับสถานะตั๋ว | ทำงานสำเร็จครบทุกขั้นตอนตามกระบวนการของ IT Staff | `e2e/lab-03/staff-ticket-flow.spec.ts` | **Pass** |
-| `TEST-021` | **E2E** | `AC-10`-`AC-12`| End-to-End Flow: Admin เข้าสู่ระบบ → ค้นหาผู้ใช้ → สร้างผู้ใช้ใหม่ → สลับสิทธิ์ → Reset รหัสผ่าน | ทำงานสำเร็จครบทุกขั้นตอนตามกระบวนการของ Administrator | `e2e/lab-03/user-administration.spec.ts` | **Pass** |
+### 4.1 ตารางกฎการเปลี่ยนสถานะตั๋ว (Ticket State Machine Matrix)
+| สถานะปัจจุบัน (Current State) | สถานะถัดไปที่อนุญาต (Allowed Next State) | การกระทำที่กระตุ้น (Trigger Action) | สิทธิ์ที่สามารถทำได้ |
+| :--- | :--- | :--- | :--- |
+| `NEW` | `IN_PROGRESS`, `CANCELLED` | IT Staff กด Claim ตั๋ว หรือ Requester/IT Staff ยกเลิกคำร้อง | IT Staff / Admin / Requester (เฉพาะตั๋วตนเองในสถานะ NEW) |
+| `IN_PROGRESS` | `WAITING_FOR_REQUESTER`, `RESOLVED`, `CANCELLED` | สอบถามข้อมูลเพิ่มจาก Requester หรือแก้ปัญหาเสร็จสิ้น | IT Staff / Admin |
+| `WAITING_FOR_REQUESTER` | `IN_PROGRESS`, `RESOLVED` | Requester ตอบกลับ หรือ IT Staff ทำงานต่อหลังได้ข้อมูล | IT Staff / Admin / Requester (ผ่านปุ่ม Resolved) |
+| `RESOLVED` | `CLOSED`, `IN_PROGRESS` | ตรวจรับงานสมบูรณ์ หรือ Requester แจ้งว่าปัญหายังคงอยู่ (Reopen) | IT Staff / Admin |
+| `CLOSED` / `CANCELLED` | *(Final State)* | ไม่อนุญาตให้เปลี่ยนสถานะใดๆ ต่อไปได้อีก | - |
+
+### 4.2 ตารางรายการทดสอบ IT Staff Operations (`TEST-015` ถึง `TEST-022`)
+| Test ID | Type | requirement / AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลลัพธ์ที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์ที่จะสร้าง |
+|---|---|---|---|---|---|
+| `TEST-015` | **API / IT Staff** | `AC-06` / `BR-10` | IT Staff ดึงข้อมูล Queue พร้อมระบุตัวกรอง `search`, `status`, `priority`, `sortBy` และ `page/limit` | ตอบ `200 OK` คืนรายการตั๋วตรงตามเงื่อนไขการค้นหากรอง และข้อมูล Pagination (`totalCount`, `totalPages`) | `server/tests/lab-03/staff-queue.api.test.ts` |
+| `TEST-016` | **API / IT Staff** | `AC-07` / `BR-11` | IT Staff กดรับตั๋วที่ไม่มียอดเจ้าของ (`POST /api/staff/tickets/:id/claim`) | ตอบ `200 OK` อัปเดต `ownerId` ให้กลายเป็น User ID ของ IT Staff ผู้เรียกใช้ API | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| `TEST-017` | **API / IT Staff** | `AC-07` / `BR-11` | IT Staff มอบหมายตั๋วใหม่ให้ IT Staff หรือ Admin รายอื่น (`PATCH /api/staff/tickets/:id/reassign`) | ตอบ `200 OK` อัปเดต `ownerId` เป็น User ID ใหม่ของ IT Staff ที่ระบุอย่างถูกต้อง | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| `TEST-018` | **API / IT Staff** | `AC-08` / `BR-12` | IT Staff ปรับเปลี่ยนระดับความสำคัญของตั๋ว (`PATCH /api/staff/tickets/:id/priority`) | ตอบ `200 OK` อัปเดตค่า `itPriority` เป็น `LOW`, `MEDIUM`, `HIGH`, หรือ `URGENT` ตามที่ส่งมา | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| `TEST-019` | **Unit / State Machine**| `AC-08` / `BR-13` | ทดสอบการเปลี่ยนสถานะตั๋วที่ถูกต้องตาม State Machine Matrix | Function `validateStateTransition()` คืนค่า `true` เมื่อเปลี่ยนสถานะตามลำดับที่อนุญาต | `server/tests/lab-03/state-machine.unit.test.ts` |
+| `TEST-020` | **API / State Machine**| `AC-08` / `BR-13` | ทดสอบการเปลี่ยนสถานะ Ticket Cancellation (`NEW` -> `CANCELLED`) โดย Requester อนุญาตให้ยกเลิกตั๋วตนเองในสถานะ `NEW` ได้ และ IT Staff พยายามเปลี่ยนสถานะที่ผิดกฎ State Machine (เช่น จาก `NEW` ไป `CLOSED` โดยตรง) | ตอบ `200 OK` สำหรับการยกเลิกตั๋วตนเองในสถานะ `NEW` และตอบ `400 Bad Request` เมื่อเปลี่ยนสถานะผิดกฎ State Machine | `server/tests/lab-03/staff-ticket-detail.api.test.ts` |
+| `TEST-021` | **API / Notes** | `AC-04` / `BR-06` | IT Staff สร้าง Public Comment และสร้าง Internal Note สำหรับบันทึกภายใน | ตอบ `201 Created` โดย Public Comment มองเห็นได้ทั่วไป แต่ Internal Note มีเฉพาะ IT Staff/Admin ที่มองเห็น | `server/tests/lab-03/comments-notes.api.test.ts` |
+| `TEST-022` | **UI / IT Staff** | `AC-07` / `BR-06` | UI Component แสดงผลหน้า Staff Ticket Detail แยกแท็บ Public Comment และ Internal Note | แท็บ Internal Note แสดงผลธีม Amber พร้อมแสดง Badge คำเตือนความปลอดภัยชัดเจน | `client/src/components/lab-03/StaffTicketDetail.test.tsx` |
 
 ---
 
-## 3. รายละเอียดโครงสร้างไฟล์ชุดทดสอบ (Test Directory Structure)
+## 5. ขั้นตอนที่ 4: แผนการทดสอบ Administrator User Management & Security Constraints
+
+หมวดหมู่นี้ครอบคลุมฟีเจอร์สำหรับ Administrator ในการบริหารจัดการผู้ใช้ในระบบ การสร้างบัญชี การปฏิเสธ Email ซ้ำ และข้อกำหนดความปลอดภัยที่ห้ามละเมิด (Self-Deactivation Block & Last-Admin Block)
+
+### 5.1 ตารางข้อกำหนดความปลอดภัยของ Admin (Admin Protection Constraints)
+| ข้อกำหนด (Constraint) | เหตุผลและความปลอดภัย (Security Rationale) | การตอบสนองของระบบเมื่อมีการละเมิด |
+| :--- | :--- | :--- |
+| **Self-Deactivation Block** | ป้องกัน Admin เผลอปิดใช้งานบัญชีของตนเองจนทำให้ระบบหรือ Session ค้าง | ตอบ `400 Bad Request` พร้อม Error Code `CANNOT_DEACTIVATE_SELF` |
+| **Last-Admin Protection** | ป้องกันการปิดใช้งานหรือเปลี่ยนบทบาท Admin คนสุดท้าย ซึ่งจะทำให้ระบบไม่มีผู้ดูแลระบบเหลืออยู่เลย | ตอบ `400 Bad Request` พร้อม Error Code `CANNOT_DEACTIVATE_LAST_ADMIN` |
+| **Duplicate Email Reject** | การันตีความถูกต้องของการยืนยันตัวตน (Unique Identity) ห้ามสร้างบัญชีด้วย Email ซ้ำ | ตอบ `409 Conflict` พร้อม Error Code `EMAIL_ALREADY_EXISTS` |
+
+### 5.2 ตารางรายการทดสอบ Admin Operations (`TEST-023` ถึง `TEST-030`)
+| Test ID | Type | requirement / AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลลัพธ์ที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์ที่จะสร้าง |
+|---|---|---|---|---|---|
+| `TEST-023` | **API / Admin** | `AC-10` / `BR-14` | Administrator ดึงรายการผู้ใช้ ค้นหาด้วยชื่อ/อีเมล และกรองตาม `role` และ `isActive` | ตอบ `200 OK` คืนรายการผู้ใช้ตรงตามเงื่อนไข พร้อมข้อมูล Pagination | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-024` | **API / Admin** | `AC-10` / `BR-14` | Administrator สร้างผู้ใช้ใหม่ กำหนด 1 Role (`REQUESTER`/`IT_STAFF`/`ADMINISTRATOR`) และ Password | ตอบ `201 Created` บันทึก `passwordHash` (bcrypt) และตั้งค่า `mustChangePassword = true` | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-025` | **API / Security** | `AC-12` / `BR-15` | Administrator สร้างผู้ใช้ใหม่ด้วย Email ที่มีอยู่ในระบบแล้ว | ตอบ `409 Conflict` พร้อม Error Code `EMAIL_ALREADY_EXISTS` ปฏิเสธการสร้าง | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-026` | **API / Admin** | `AC-10` / `BR-14` | Administrator แก้ไขข้อมูลชื่อ หรือบทบาทของผู้ใช้เดิม (`PATCH /api/admin/users/:id`) | ตอบ `200 OK` อัปเดตข้อมูลผู้ใช้ในระบบสำเร็จ | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-027` | **API / Admin** | `AC-10` / `BR-14` | Administrator สลับสถานะเปิด/ปิดใช้งานบัญชีผู้ใช้ทั่วไป (`isActive = true/false`) | ตอบ `200 OK` อัปเดตสถานะ `isActive` ตามต้องการ | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-028` | **API / Security** | `AC-10` / `BR-14` | Administrator พยายามปิดใช้งานบัญชี (Deactivate) ของตนเอง (`isActive = false`) | ตอบ `400 Bad Request` พร้อมข้อความแจ้งห้าม Deactivate บัญชีตนเอง | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-029` | **API / Security** | `AC-11` / `BR-14` | Administrator พยายามปิดใช้งานหรือเปลี่ยนบทบาท Admin คนสุดท้ายของระบบ | ตอบ `400 Bad Request` พร้อมข้อความห้ามปิดใช้งาน Admin คนสุดท้าย | `server/tests/lab-03/users-admin.api.test.ts` |
+| `TEST-030` | **UI / Admin** | `AC-10` / `BR-14` | UI Component แสดงหน้า Administrator User Management ค้นหา กรอง และเรียกใช้ Modal สร้าง/แก้ไข | แสดงผลตามดีไซน์ Zen Green มี Validation state และปุ่ม Active Toggle ทำงานถูกต้อง | `client/src/components/lab-03/UserManagement.test.tsx` |
+
+---
+
+## 6. ขั้นตอนที่ 5: แผนการทดสอบ Data Migration, Responsive UI, Accessibility & E2E Integration Strategy
+
+หมวดหมู่นี้ครอบคลุมการทดสอบข้อมูลเริ่มต้นระบบ (Migration/Seed), การปรับเปลี่ยนสัดส่วนหน้าจอตามขนาดอุปกรณ์ (Responsive Layout), ความเข้มของสีและการเข้าถึงของผู้พิการ (Accessibility - WCAG 2.1) และการทดสอบระบบสมบูรณ์แบบ End-to-End (E2E)
+
+### 6.1 ตารางรายการทดสอบ Migration, Responsive, Accessibility & E2E (`TEST-031` ถึง `TEST-037`)
+| Test ID | Type | requirement / AC ที่ผูก | สิ่งที่เทส (Test Description) | ผลลัพธ์ที่คาดหวัง (Expected Outcome) | path ไฟล์เทสต์ที่จะสร้าง |
+|---|---|---|---|---|---|
+| `TEST-031` | **Regression / DB**| Migration / Seed | รัน Seed Script แบบ Idempotent (`npx prisma db seed`) แล้วรันซ้ำเพื่อทดสอบการทำงาน | รันผ่านโดยไม่เกิดข้อผิดพลาด Duplicate Key และข้อมูลเริ่มต้น (Default Users, Tickets, Notes) มีการ Hash Password (bcrypt) ครบถ้วน | `server/tests/lab-03/db-seed.test.ts` |
+| `TEST-032` | **Responsive / UI**| All UI Screens | ทดสอบการแสดงผลหน้า IT Queue และ User Management บน Viewport ขนาด Desktop (1280px) และ Mobile (375px) | Desktop แสดงผลเป็น Table view, Mobile สลับเป็น Cards view โดยไม่เกิด Text Overflow หรือ Horizontal Scroll | `client/src/components/lab-03/ResponsiveLayout.test.tsx` |
+| `TEST-033` | **Accessibility** | WCAG 2.1 Standard | ตรวจสอบการใช้งาน Keyboard Navigation (Tab, Enter, Escape) ใน Modal และฟอร์มทั้งหมด รวมถึงตรวจ ARIA Live Regions (`aria-live="polite"`) สำหรับ Toast Notifications | สามารถสลับ Focus ได้ตามลำดับ, ปิด Modal ด้วย Escape ได้ และ Toast Notification มี attribute `aria-live="polite"` ครบถ้วน | `client/src/components/lab-03/Accessibility.test.tsx` |
+| `TEST-034` | **Accessibility** | WCAG 2.1 Standard | ตรวจสอบ Color Contrast Ratio ของธีม Zen Green และแท็บคำเตือน Amber (Internal Note) | ค่า Contrast Ratio ไม่ต่ำกว่า 4.5:1 ตามมาตรฐาน WCAG 2.1 Level AA | `client/src/components/lab-03/Accessibility.test.tsx` |
+| `TEST-035` | **E2E / Security** | `AC-01`-`AC-02` | E2E Flow: เข้าสู่ระบบครั้งแรกด้วย Default Password -> บังคับเปลี่ยนรหัสผ่าน -> เข้าสู่ Dashboard -> Logout | ทำงานสำเร็จครบทั้ง Flow ปลอดภัย ไร้ข้อผิดพลาด Redirection Loop | `e2e/lab-03/authentication.spec.ts` |
+| `TEST-036` | **E2E / IT Staff** | `AC-06`-`AC-08` | E2E Flow: IT Staff Login -> ค้นหาตั๋วใน Queue -> กด Claim -> ปรับ IT Priority -> เขียน Internal Note -> เปลี่ยนสถานะตั๋ว | ทำงานสำเร็จครบทุกกระบวนการของ IT Staff | `e2e/lab-03/staff-ticket-flow.spec.ts` |
+| `TEST-037` | **E2E / Admin** | `AC-10`-`AC-12` | E2E Flow: Admin Login -> ค้นหา User -> สร้าง User ใหม่ -> สลับสิทธิ์ -> ทดสอบบล็อก Self-Deactivation | ทำงานสำเร็จครบทุกกระบวนการบริหารจัดการผู้ใช้ของ Administrator | `e2e/lab-03/user-administration.spec.ts` |
+
+---
+
+## 7. รายละเอียดโครงสร้างไฟล์ชุดทดสอบทั้งหมด (Master Test Directory Structure)
 
 ```
 toktickit/
 ├── server/
 │   └── tests/
 │       └── lab-03/
-│           ├── auth.api.test.ts            # TEST-001, TEST-002, TEST-003, TEST-005
-│           ├── authorization.api.test.ts   # TEST-006, TEST-011, TEST-014
-│           ├── staff-queue.api.test.ts     # TEST-008
-│           ├── staff-ticket-detail.api.test.ts # TEST-009, TEST-010
-│           ├── comments-notes.api.test.ts  # TEST-007
-│           └── users-admin.api.test.ts     # TEST-012, TEST-013, TEST-015
+│           ├── auth.api.test.ts              # TEST-001, TEST-002, TEST-003, TEST-005, TEST-007
+│           ├── password-policy.unit.test.ts  # TEST-004
+│           ├── authorization.api.test.ts     # TEST-009, TEST-010, TEST-011, TEST-014
+│           ├── requester-regression.api.test.ts # TEST-012, TEST-013
+│           ├── staff-queue.api.test.ts       # TEST-015
+│           ├── staff-ticket-detail.api.test.ts # TEST-016, TEST-017, TEST-018, TEST-020
+│           ├── state-machine.unit.test.ts    # TEST-019
+│           ├── comments-notes.api.test.ts    # TEST-008, TEST-021
+│           ├── users-admin.api.test.ts       # TEST-023, TEST-024, TEST-025, TEST-026, TEST-027, TEST-028, TEST-029
+│           └── db-seed.test.ts               # TEST-031
 ├── client/
 │   └── src/
 │       └── components/
 │           └── lab-03/
-│               ├── Login.test.tsx          # TEST-016
-│               ├── ChangePassword.test.tsx # TEST-004 (UI)
-│               ├── StaffTicketQueue.test.tsx # TEST-017
-│               ├── StaffTicketDetail.test.tsx # TEST-018
-│               └── UserManagement.test.tsx # TEST-019
+│               ├── Login.test.tsx            # TEST-016 (UI)
+│               ├── StaffTicketDetail.test.tsx # TEST-022
+│               ├── UserManagement.test.tsx   # TEST-030
+│               ├── ResponsiveLayout.test.tsx # TEST-032
+│               └── Accessibility.test.tsx    # TEST-033, TEST-034
 └── e2e/
     └── lab-03/
-        ├── authentication.spec.ts          # TEST-004
-        ├── staff-ticket-flow.spec.ts       # TEST-020
-        └── user-administration.spec.ts     # TEST-021
+        ├── authentication.spec.ts            # TEST-006, TEST-035
+        ├── staff-ticket-flow.spec.ts         # TEST-036
+        └── user-administration.spec.ts       # TEST-037
 ```
+
+---
+
+## 8. สรุปความครอบคลุมเกณฑ์การตรวจรับงาน (Acceptance Criteria Mapping Traceability)
+
+| Acceptance Criteria | ข้อกำหนดการตรวจรับงาน (Requirement Description) | Test IDs ที่รองรับการทดสอบ |
+| :--- | :--- | :--- |
+| **`AC-01`** | Single Active Session with Cookie-based auth & Password policy | `TEST-001`, `TEST-002`, `TEST-004`, `TEST-007` |
+| **`AC-02`** | First-login mandatory password change flow | `TEST-005`, `TEST-006`, `TEST-035` |
+| **`AC-03`** | Requester ownership isolation & regression from Lab 2 | `TEST-010`, `TEST-012`, `TEST-013` |
+| **`AC-04`** | Internal Notes visibility restricted strictly to IT Staff/Admin | `TEST-008`, `TEST-021`, `TEST-022` |
+| **`AC-05`** | Inactive account login restriction & access blocking | `TEST-003` |
+| **`AC-06`** | IT Ticket Queue listing, search, filter, sort & pagination | `TEST-015`, `TEST-036` |
+| **`AC-07`** | Ticket ownership claim, reassign & detail views | `TEST-016`, `TEST-017`, `TEST-022`, `TEST-036` |
+| **`AC-08`** | IT Priority management & State machine status transition rules | `TEST-018`, `TEST-019`, `TEST-020`, `TEST-036` |
+| **`AC-09`** | Requester self-resolved problem notification trigger | `TEST-014` |
+| **`AC-10`** | Administrator user management CRUD & activation toggle | `TEST-023`, `TEST-024`, `TEST-026`, `TEST-027`, `TEST-030`, `TEST-037` |
+| **`AC-11`** | Self-deactivation block & Last-Admin protection constraint | `TEST-028`, `TEST-029`, `TEST-037` |
+| **`AC-12`** | Role-Based Access Control (RBAC) & duplicate email rejection | `TEST-009`, `TEST-011`, `TEST-025` |
