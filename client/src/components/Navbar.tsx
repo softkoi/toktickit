@@ -83,7 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
                   onClick={() => handleNavigate('staff-queue')}
                 >
                   <FileText size={16} />
-                  <span>Ticket Queue</span>
+                  <span>My Queue</span>
                 </button>
                 <button 
                   className={`nav-link ${activeTab === 'create-ticket' ? 'active' : ''}`}
