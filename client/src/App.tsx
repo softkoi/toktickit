@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { RequesterProvider } from './context/RequesterContext';
 import { Navbar, NavTab } from './components/Navbar';
 import { LoginPage } from './pages/LoginPage';
 import { MandatoryPasswordChangeModal } from './components/MandatoryPasswordChangeModal';
@@ -123,7 +124,9 @@ export const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <RequesterProvider>
+        <AppContent />
+      </RequesterProvider>
     </AuthProvider>
   );
 };
