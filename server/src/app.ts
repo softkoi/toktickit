@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import referenceRoutes from './routes/reference.routes';
 import ticketRoutes from './routes/ticket.routes';
+import authRoutes from './routes/auth.routes';
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(express.json());
 // API Routes
 app.use('/api', referenceRoutes);
 app.use('/api', ticketRoutes);
+app.use('/api', authRoutes);
 
 // 404 Handler
 app.use((_req, res) => {

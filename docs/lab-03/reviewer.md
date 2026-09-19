@@ -33,8 +33,26 @@
 
 ---
 
-## Reviewer Feedback & Comments
-*To be filled by peer reviewer upon code review.*
+## Reviewer Feedback & PR Change Log (Feature 1: Authentication Foundation)
 
-- **Comments**: 
-- **Approval Status**: Approved / Pending Changes
+- **PR Branch:** `feature/4-authentication-foundation` -> `lab3-staging`
+- **Approval Status:** Approved with Changes Resolved
+
+### Change Requests & Resolution Log:
+
+1. **Password Whitespace Boundary (`server/src/utils/passwordPolicy.ts`)**
+   - **Reviewer Comment:** "In `validatePasswordPolicy`, could we ensure that passwords containing whitespace characters or leading/trailing spaces are explicitly validated or rejected? Currently, spaces might be counted towards the 8-character minimum length. Please add a check or regex to reject passwords with spaces."
+   - **Resolution:** Added `if (/\s/.test(password)) return false;` check in `passwordPolicy.ts` and added unit test coverage in `password-policy.unit.test.ts`.
+
+2. **Email Normalization & Response Schema (`server/src/controllers/auth.controller.ts`)**
+   - **Reviewer Comment:** "In the `login` handler, could we make sure the input `email` is sanitized with `.trim().toLowerCase()` before querying Prisma? Also, for inactive accounts (`!user.isActive`), please ensure the error message specifies `Account is deactivated` with a `401` status code to match the acceptance criteria AC-05."
+   - **Resolution:** Sanitized `sanitizedEmail = email.trim().toLowerCase()` before querying Prisma and verified standard 401 error payload format for inactive accounts.
+
+3. **RBAC Error Code Verification (`server/src/middlewares/authMiddleware.ts`)**
+   - **Reviewer Comment:** "In `requireRoles` middleware, could we make sure that when role authorization fails, it returns a standard JSON error response with `403 Forbidden` and error code `INSUFFICIENT_PERMISSIONS` as defined in section 1.2 of the API spec?"
+   - **Resolution:** Verified `requireRoles` returns `403 Forbidden` with error code `INSUFFICIENT_PERMISSIONS`.
+
+4. **Empty Payload API Test (`server/tests/lab-03/auth.api.test.ts`)**
+   - **Reviewer Comment:** "Could you add an extra test case in `auth.api.test.ts` to test sending an empty JSON body `{}` to `POST /api/auth/login` and verify that the API gracefully handles it and returns `401 Unauthorized` with `INVALID_CREDENTIALS`?"
+   - **Resolution:** Added explicit test case for `{}` body in `auth.api.test.ts` and verified `401 Unauthorized` response. All 14 tests passing.
+
