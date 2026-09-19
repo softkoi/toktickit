@@ -531,6 +531,7 @@ tr:hover td { background-color: #F8FBF9; }
   .table-container, .overflow-x-auto {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
 
   .login-card {

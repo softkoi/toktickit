@@ -79,6 +79,15 @@ export async function createUser(req: AuthRequest, res: Response) {
     }
 
     const sanitizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(sanitizedEmail)) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_INPUT',
+          message: 'Invalid email address format'
+        }
+      });
+    }
 
     const existingUser = await prisma.user.findUnique({
       where: { email: sanitizedEmail }
