@@ -5,6 +5,7 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,59 +23,70 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 border border-emerald-100">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-800 text-white font-black text-2xl mb-3 shadow-md">
-            TK
+    <div className="login-page-container">
+      <div className="login-card">
+        <div className="login-header">
+          <div className="login-icon-box">
+            <svg width="24" height="18" viewBox="0 0 28 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M25 0H3C1.34 0 0.01 1.34 0.01 3L0 7C1.1 7 2 7.9 2 9C2 10.1 1.1 11 0 11L0.01 15C0.01 16.66 1.34 18 3 18H25C26.66 18 28 16.66 28 15V11C26.9 11 26 10.1 26 9C26 7.9 26.9 7 28 7V3C28 1.34 26.66 0 25 0ZM25 7.79C23.25 8.35 22 10.02 22 12C22 13.98 23.25 15.65 25 16.21V16H3V16.21C4.75 15.65 6 13.98 6 12C6 10.02 4.75 8.35 3 7.79V4H25V7.79Z" fill="#D97706"/>
+            </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">TokTickIT Login</h1>
-          <p className="text-sm text-slate-500 mt-1">Enterprise IT Helpdesk & Operations</p>
+          <h1 className="login-title">TokTickIT</h1>
+          <p className="login-subtitle">Sign in to your account</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg flex items-center justify-between">
-            <span>{error}</span>
+          <div className="login-error-alert">
+            {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">Email Address</label>
+        <form onSubmit={handleSubmit} className="login-form">
+          <div className="login-form-group">
+            <label className="login-label">
+              Email <span className="required-star">*</span>
+            </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
-              placeholder="user@toktickit.com"
+              className="login-input"
+              placeholder=""
               required
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 outline-none transition-all"
-              placeholder="••••••••"
-              required
-            />
+          <div className="login-form-group">
+            <label className="login-label">
+              Password <span className="required-star">*</span>
+            </label>
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="login-input password-input"
+                placeholder=""
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold text-sm rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+            className="login-submit-btn"
           >
-            {loading ? 'Authenticating...' : 'Sign In'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
-
-        <div className="mt-8 pt-6 border-t border-slate-100 text-center text-xs text-slate-400">
-          Zen Green Security Shield • TokTickIT Enterprise Lab 03
-        </div>
       </div>
     </div>
   );
