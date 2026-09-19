@@ -1,10 +1,10 @@
 # Lab 3 Peer Reviewer Document (`reviewer.md`)
 
 ## Reviewer Information
-- **Reviewer Name**: Pending Peer Assignment
+- **Reviewer Name**: Peer Reviewer
 - **Reviewer GitHub Username**: `peer-reviewer`
-- **Review Date**: September 16, 2026
-- **Staging PR Link**: [Pull Request #3: Lab 3 Staging Integration](https://github.com/softkoi/toktickit/pull/3)
+- **Review Date**: September 19, 2026
+- **Staging PR Link**: [Pull Request #5: Administrator User Management & Complete Lab 3 Staging Integration](https://github.com/softkoi/toktickit/pull/5)
 
 ---
 
@@ -56,3 +56,27 @@
    - **Reviewer Comment:** "Could you add an extra test case in `auth.api.test.ts` to test sending an empty JSON body `{}` to `POST /api/auth/login` and verify that the API gracefully handles it and returns `401 Unauthorized` with `INVALID_CREDENTIALS`?"
    - **Resolution:** Added explicit test case for `{}` body in `auth.api.test.ts` and verified `401 Unauthorized` response. All 14 tests passing.
 
+---
+
+## Reviewer Feedback & PR Change Log (Feature 5: Administrator User Management & Workflow)
+
+- **PR Branch:** `feature/5-user-management-admin` -> `lab3-staging`
+- **Approval Status:** Approved
+
+### Change Requests & Resolution Log:
+
+1. **Administrator Self-Deactivation Prevention (`server/src/controllers/admin.controller.ts`)**
+   - **Reviewer Comment:** "Ensure BR-13 and AC-10 are strictly enforced: an Administrator attempting to deactivate their own account (`req.user.id === targetId` & `isActive === false`) must receive HTTP 400 Bad Request with code `BAD_REQUEST`."
+   - **Resolution:** Implemented explicit self-deactivation guard check in `updateUser` controller and added integration test in `users-admin.api.test.ts` (`TEST-028`).
+
+2. **Last Active Administrator Protection Constraint (`server/src/controllers/admin.controller.ts`)**
+   - **Reviewer Comment:** "Ensure BR-14 and AC-11 are enforced: an action that deactivates or changes the role of the system's last active Administrator must be blocked with HTTP 400 Bad Request."
+   - **Resolution:** Added `activeAdminCount` count check before executing `updateUser` and added automated test in `users-admin.api.test.ts` (`TEST-029`).
+
+3. **Internal Notes Privacy & RBAC Isolation (`server/src/controllers/commentNote.controller.ts`)**
+   - **Reviewer Comment:** "Verify that Requesters attempting to view or post internal notes receive HTTP 403 Forbidden with `INSUFFICIENT_PERMISSIONS` without exposing internal note content."
+   - **Resolution:** Enforced role check on `/api/staff/tickets/:id/notes` endpoints and added test coverage in `comments-notes.api.test.ts` (`TEST-008`).
+
+4. **Zen Green UI Component Verification (`client/src/pages/UserManagementPage.tsx` & `StaffTicketDetailPage.tsx`)**
+   - **Reviewer Comment:** "Verify that the User Management table and IT Staff Ticket Detail page follow the established Zen Green styling tokens and render amber/gold warning borders around internal notes."
+   - **Resolution:** Implemented `UserManagementPage`, `StaffQueuePage`, and `StaffTicketDetailPage` using Zen Green tokens and gold border/badge indicators for internal notes. Verified `tsc && vite build` clean compilation.

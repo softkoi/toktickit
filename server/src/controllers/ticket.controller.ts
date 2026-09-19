@@ -1,12 +1,12 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { AuthenticatedRequest } from '../middlewares/requester.middleware';
+import { AuthRequest } from '../middlewares/authMiddleware';
 import { generateTicketNumber } from '../utils/ticket-number.generator';
 
 const prisma = new PrismaClient();
 
-export async function createTicket(req: AuthenticatedRequest, res: Response) {
-  const requesterId = req.requesterId;
+export async function createTicket(req: AuthRequest, res: Response) {
+  const requesterId = req.user?.id || (req as any).requesterId;
   const { categoryId, relatedSystemId, requestedPriority, summary, description } = req.body || {};
 
   const fields: { field: string; message: string }[] = [];
@@ -48,7 +48,7 @@ export async function createTicket(req: AuthenticatedRequest, res: Response) {
   // Validate description
   const trimmedDescription = typeof description === 'string' ? description.trim() : '';
   if (trimmedDescription.length < 5 || trimmedDescription.length > 2000) {
-    fields.push({ field: 'description', message: 'Description must be between 5 and 2000 characters.' });
+    fields.push({ field: 'description', message: 'Description must be between 5 and 200 characters.' });
   }
 
   if (fields.length > 0) {
@@ -74,6 +74,7 @@ export async function createTicket(req: AuthenticatedRequest, res: Response) {
         summary: trimmedSummary,
         description: trimmedDescription,
         requestedPriority,
+        itPriority: requestedPriority,
         currentStatus: 'NEW',
       },
       include: {
@@ -99,14 +100,14 @@ export async function createTicket(req: AuthenticatedRequest, res: Response) {
   }
 }
 
-export async function getTickets(req: AuthenticatedRequest, res: Response) {
-  const requesterId = req.requesterId;
+export async function getTickets(req: AuthRequest, res: Response) {
+  const requesterId = req.user?.id || (req as any).requesterId;
   if (!requesterId) {
-    return res.status(400).json({
+    return res.status(401).json({
       success: false,
       error: {
-        code: 'MISSING_REQUESTER_HEADER',
-        message: 'X-Requester-Id header is required',
+        code: 'UNAUTHORIZED',
+        message: 'Authentication required',
       },
     });
   }
@@ -235,7 +236,6 @@ export async function getTickets(req: AuthenticatedRequest, res: Response) {
     const totalPages = Math.ceil(totalItems / pageSizeNum);
     const items = pageNum <= totalPages ? rawItems : [];
 
-
     return res.status(200).json({
       success: true,
       data: {
@@ -260,14 +260,14 @@ export async function getTickets(req: AuthenticatedRequest, res: Response) {
   }
 }
 
-export async function getTicketById(req: AuthenticatedRequest, res: Response) {
-  const requesterId = req.requesterId;
+export async function getTicketById(req: AuthRequest, res: Response) {
+  const requesterId = req.user?.id || (req as any).requesterId;
   if (!requesterId) {
-    return res.status(400).json({
+    return res.status(401).json({
       success: false,
       error: {
-        code: 'MISSING_REQUESTER_HEADER',
-        message: 'X-Requester-Id header is required',
+        code: 'UNAUTHORIZED',
+        message: 'Authentication required',
       },
     });
   }
@@ -287,18 +287,14 @@ export async function getTicketById(req: AuthenticatedRequest, res: Response) {
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
-        category: {
-          select: { id: true, name: true },
-        },
-        relatedSystem: {
-          select: { id: true, name: true },
-        },
-        requester: {
-          select: { id: true, name: true, email: true },
-        },
-        attachments: {
-          orderBy: { uploadedAt: 'asc' },
-        },
+        category: { select: { id: true, name: true } },
+        relatedSystem: { select: { id: true, name: true } },
+        requester: { select: { id: true, name: true, email: true } },
+        attachments: { orderBy: { uploadedAt: 'asc' } },
+        publicComments: {
+          include: { author: { select: { id: true, name: true, role: true } } },
+          orderBy: { createdAt: 'asc' }
+        }
       },
     });
 
@@ -312,7 +308,7 @@ export async function getTicketById(req: AuthenticatedRequest, res: Response) {
       });
     }
 
-    if (ticket.requesterId !== requesterId) {
+    if (ticket.requesterId !== requesterId && req.user?.role === 'REQUESTER') {
       return res.status(403).json({
         success: false,
         error: {
@@ -338,4 +334,41 @@ export async function getTicketById(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function requestResolution(req: AuthRequest, res: Response) {
+  try {
+    const ticketId = parseInt(req.params.id, 10);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({
+        error: { code: 'INVALID_INPUT', message: 'Invalid ticket ID' }
+      });
+    }
 
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) {
+      return res.status(404).json({
+        error: { code: 'NOT_FOUND', message: 'Ticket not found' }
+      });
+    }
+
+    if (req.user?.role === 'REQUESTER' && ticket.requesterId !== req.user.id) {
+      return res.status(403).json({
+        error: { code: 'INSUFFICIENT_PERMISSIONS', message: 'Forbidden: You do not own this ticket' }
+      });
+    }
+
+    // Set currentStatus to WAITING_FOR_REQUESTER or log resolution request confirmation
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { currentStatus: 'WAITING_FOR_REQUESTER' }
+    });
+
+    return res.status(200).json({
+      message: 'Problem marked as resolution requested',
+      ticket: updatedTicket
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: { code: 'INTERNAL_ERROR', message: 'Failed to process resolution request' }
+    });
+  }
+}
