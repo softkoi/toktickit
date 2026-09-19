@@ -478,3 +478,68 @@ table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748B; padding: 0.75rem 1rem; border-bottom: 1px solid #E2E8F0; background-color: #F8FAFC; }
 td { padding: 0.875rem 1rem; font-size: 0.875rem; color: #334155; border-bottom: 1px solid #F1F5F9; }
 tr:hover td { background-color: #F8FBF9; }
+
+/* ==========================================================================
+   Responsive Layout & Breakpoints (Desktop, Tablet, Mobile)
+   ========================================================================== */
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-nav-toggle-area {
+  display: none;
+}
+
+/* Tablet (768px - 991px) */
+@media (max-width: 991px) {
+  .page-container, .max-w-7xl {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 767px) {
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .mobile-nav-toggle-area {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .navbar {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .brand-title {
+    font-size: 16px;
+  }
+
+  .table-container, .overflow-x-auto {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .login-card {
+    padding: 28px 20px 24px;
+    max-width: 100%;
+  }
+
+  .modal-card {
+    padding: 20px 16px;
+    margin: 12px;
+  }
+}

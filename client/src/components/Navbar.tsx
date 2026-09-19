@@ -117,8 +117,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
         </div>
 
         {/* Desktop User Profile & Logout */}
-        <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="navbar-right">
+          <div className="desktop-nav">
             {user && (
               <div 
                 className="user-profile-badge" 
@@ -168,6 +168,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
             >
               <LogOut size={14} />
               <span>Logout</span>
+            </button>
+          </div>
+
+          <div className="mobile-nav-toggle-area">
+            <span className="mobile-user-name" style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>
+              {user ? user.name.split(' ')[0] : 'User'}
+            </span>
+            <button 
+              className="mobile-menu-toggle-btn"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle navigation menu"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            >
+              {isMobileMenuOpen ? <X size={22} color="#FFFFFF" /> : <Menu size={22} color="#FFFFFF" />}
             </button>
           </div>
         </div>
