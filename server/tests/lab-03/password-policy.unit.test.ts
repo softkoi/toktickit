@@ -40,6 +40,12 @@ describe('TEST-004: Password Boundary & Policy Validation', () => {
     expect(validatePasswordPolicy('Password123')).toBe(false);
   });
 
+  it('should reject passwords containing spaces or whitespace', () => {
+    expect(validatePasswordPolicy('Password 123!')).toBe(false);
+    expect(validatePasswordPolicy(' Password123!')).toBe(false);
+    expect(validatePasswordPolicy('Password123! ')).toBe(false);
+  });
+
   it('should handle empty string, null, or undefined gracefully', () => {
     expect(validatePasswordPolicy('')).toBe(false);
     expect(validatePasswordPolicy(null as unknown as string)).toBe(false);

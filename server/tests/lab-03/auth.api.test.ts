@@ -107,6 +107,14 @@ describe('Authentication API Tests (Lab 03)', () => {
 
     expect(resInvalidEmail.status).toBe(401);
     expect(resInvalidEmail.body.error.code).toBe('INVALID_CREDENTIALS');
+
+    const resEmptyBody = await request(app)
+      .post('/api/auth/login')
+      .send({});
+
+    expect(resEmptyBody.status).toBe(401);
+    expect(resEmptyBody.body.error).toBeDefined();
+    expect(resEmptyBody.body.error.code).toBe('INVALID_CREDENTIALS');
   });
 
   it('TEST-003: should return 401 Unauthorized when attempting to login with an inactive account', async () => {

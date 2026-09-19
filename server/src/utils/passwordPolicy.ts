@@ -11,6 +11,11 @@ export function validatePasswordPolicy(password: string): boolean {
     return false;
   }
 
+  // Reject passwords with spaces / whitespace
+  if (/\s/.test(password)) {
+    return false;
+  }
+
   // Length check: 8 <= length <= 128
   if (password.length < 8 || password.length > 128) {
     return false;

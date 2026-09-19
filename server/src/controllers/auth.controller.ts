@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 export async function login(req: AuthRequest, res: Response) {
   const { email, password } = req.body;
 
-  if (!email || !password) {
+  if (!email || typeof email !== 'string' || !password) {
     return res.status(401).json({
       error: {
         code: 'INVALID_CREDENTIALS',
@@ -19,8 +19,10 @@ export async function login(req: AuthRequest, res: Response) {
     });
   }
 
+  const sanitizedEmail = email.trim().toLowerCase();
+
   const user = await prisma.user.findUnique({
-    where: { email: email.toLowerCase().trim() }
+    where: { email: sanitizedEmail }
   });
 
   if (!user) {
