@@ -117,36 +117,57 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
         </div>
 
         {/* Desktop User Profile & Logout */}
-        <div className="navbar-right">
-          <div className="desktop-nav flex items-center gap-3">
+        <div className="navbar-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             {user && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-900/40 rounded-lg border border-emerald-700/50">
-                <span className="text-sm font-medium text-white">{user.name}</span>
-                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${getRoleBadgeColor(user.role)}`}>
+              <div 
+                className="user-profile-badge" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  padding: '6px 12px', 
+                  backgroundColor: 'rgba(0, 54, 30, 0.4)', 
+                  borderRadius: '8px', 
+                  border: '1px solid rgba(255, 255, 255, 0.2)' 
+                }}
+              >
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{user.name}</span>
+                <span 
+                  style={{ 
+                    fontSize: '11px', 
+                    fontWeight: 700, 
+                    textTransform: 'uppercase', 
+                    padding: '2px 8px', 
+                    borderRadius: '9999px',
+                    backgroundColor: user.role === 'ADMINISTRATOR' ? '#7E22CE' : user.role === 'IT_STAFF' ? '#D97706' : '#148A52',
+                    color: '#FFFFFF'
+                  }}
+                >
                   {getRoleLabel(user.role)}
                 </span>
               </div>
             )}
             <button 
               onClick={() => logout()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-100 hover:text-white bg-emerald-800/60 hover:bg-emerald-800 rounded-lg transition-colors border border-emerald-700/50"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#FFFFFF',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'background-color 0.15s ease'
+              }}
               title="Sign Out"
             >
               <LogOut size={14} />
               <span>Logout</span>
-            </button>
-          </div>
-
-          <div className="mobile-nav-toggle-area">
-            <span className="mobile-user-name">
-              {user ? user.name.split(' ')[0] : 'User'}
-            </span>
-            <button 
-              className="mobile-menu-toggle-btn"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle mobile navigation menu"
-            >
-              {isMobileMenuOpen ? <X size={22} color="#FFFFFF" /> : <Menu size={22} color="#FFFFFF" />}
             </button>
           </div>
         </div>
