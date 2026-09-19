@@ -31,7 +31,7 @@ export async function validateRequesterHeader(req: AuthenticatedRequest, res: Re
     });
   }
 
-  const requester = await prisma.requesterUser.findUnique({
+  const requester = await prisma.user.findUnique({
     where: { id: requesterId }
   });
 
