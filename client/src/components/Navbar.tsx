@@ -20,18 +20,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
 
   const getRoleLabel = (role?: string) => {
     switch (role) {
-      case 'ADMINISTRATOR': return 'Admin';
+      case 'ADMINISTRATOR': return 'Administrator';
       case 'IT_STAFF': return 'IT Staff';
       case 'REQUESTER': return 'Requester';
       default: return 'User';
-    }
-  };
-
-  const getRoleBadgeColor = (role?: string) => {
-    switch (role) {
-      case 'ADMINISTRATOR': return 'bg-purple-700 text-white';
-      case 'IT_STAFF': return 'bg-amber-600 text-white';
-      default: return 'bg-emerald-600 text-white';
     }
   };
 
@@ -55,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
             <span className="brand-title">TokTickIT</span>
           </a>
 
-          {/* Desktop Navigation Links based on Role */}
+          {/* Desktop Navigation Links */}
           <nav className="nav-links desktop-nav">
             {(user?.role === 'REQUESTER' || !user) && (
               <>
@@ -102,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
                   onClick={() => handleNavigate('user-management')}
                 >
                   <Users size={16} />
-                  <span>User Management</span>
+                  <span>Users</span>
                 </button>
                 <button 
                   className={`nav-link ${activeTab === 'staff-queue' ? 'active' : ''}`}
@@ -144,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
                     color: '#FFFFFF'
                   }}
                 >
-                  {getRoleLabel(user.role)}
+                  {user.role === 'ADMINISTRATOR' ? 'Admin' : getRoleLabel(user.role)}
                 </span>
               </div>
             )}
@@ -190,16 +182,16 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
         <div className="mobile-drawer-menu">
-          <div className="mobile-requester-box">
-            <div className="mobile-requester-info">
-              <span className="mobile-requester-label">Authenticated User:</span>
-              <span className="mobile-requester-name">{user ? `${user.name} (${getRoleLabel(user.role)})` : 'Not Signed In'}</span>
+          <div className="mobile-user-card">
+            <div className="mobile-user-info">
+              <span className="mobile-signed-in-label">Signed in as:</span>
+              <span className="mobile-user-fullname">{user ? `${user.name} - ${getRoleLabel(user.role)}` : 'Not Signed In'}</span>
             </div>
             <button 
-              className="change-requester-btn bg-red-600 hover:bg-red-700 text-white"
+              className="mobile-logout-btn"
               onClick={() => { setIsMobileMenuOpen(false); logout(); }}
             >
-              Logout
+              Log out
             </button>
           </div>
 
@@ -210,14 +202,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
                   className={`mobile-nav-item ${activeTab === 'my-tickets' ? 'active' : ''}`}
                   onClick={() => handleNavigate('my-tickets')}
                 >
-                  <FileText size={18} />
+                  <FileText size={18} className="text-emerald-300" />
                   <span>My Tickets</span>
                 </button>
                 <button 
                   className={`mobile-nav-item ${activeTab === 'create-ticket' ? 'active' : ''}`}
                   onClick={() => handleNavigate('create-ticket')}
                 >
-                  <PlusCircle size={18} />
+                  <PlusCircle size={18} className="text-emerald-300" />
                   <span>Create Ticket</span>
                 </button>
               </>
@@ -229,14 +221,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
                   className={`mobile-nav-item ${activeTab === 'staff-queue' ? 'active' : ''}`}
                   onClick={() => handleNavigate('staff-queue')}
                 >
-                  <FileText size={18} />
-                  <span>Ticket Queue</span>
+                  <FileText size={18} className="text-emerald-300" />
+                  <span>My Queue</span>
                 </button>
                 <button 
                   className={`mobile-nav-item ${activeTab === 'create-ticket' ? 'active' : ''}`}
                   onClick={() => handleNavigate('create-ticket')}
                 >
-                  <PlusCircle size={18} />
+                  <PlusCircle size={18} className="text-emerald-300" />
                   <span>Create Ticket</span>
                 </button>
               </>
@@ -248,14 +240,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
                   className={`mobile-nav-item ${activeTab === 'user-management' ? 'active' : ''}`}
                   onClick={() => handleNavigate('user-management')}
                 >
-                  <Users size={18} />
-                  <span>User Management</span>
+                  <Users size={18} className="text-purple-300" />
+                  <span>Users</span>
                 </button>
                 <button 
                   className={`mobile-nav-item ${activeTab === 'staff-queue' ? 'active' : ''}`}
                   onClick={() => handleNavigate('staff-queue')}
                 >
-                  <Shield size={18} />
+                  <Shield size={18} className="text-emerald-300" />
                   <span>Ticket Queue</span>
                 </button>
               </>

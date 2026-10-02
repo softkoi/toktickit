@@ -5,6 +5,7 @@ TokTickIT is an IT Service Desk web application developed for **CPE334: Introduc
 The project is developed iteratively through multi-sprint laboratory milestones:
 - **Lab 1:** Foundation vertical slice (React + Express REST API + Prisma ORM + PostgreSQL).
 - **Lab 2:** Requester Ticketing MVP with complete ticket creation, dashboard filtering, attachment lifecycle management, and responsive design.
+- **Lab 3:** Enterprise-grade Authentication, Role-Based Access Control (RBAC), IT Staff Queue & Operations, Public Comments & Internal Notes, and Administrator User Management.
 
 ---
 
@@ -24,14 +25,15 @@ The project is developed iteratively through multi-sprint laboratory milestones:
 ```
 toktickit/
 ├── client/                      # React Frontend with Tailwind CSS
-│   ├── src/                     # Components, Pages, State Hooks
+│   ├── src/                     # Components, Pages, Auth Context
 │   └── tests/                   # UI Component & Responsive tests
 ├── server/                      # Express + Prisma Backend
 │   ├── prisma/                  # Schema models, migrations, seed script
-│   ├── src/                     # Controllers, Services, Validation helpers
+│   ├── src/                     # Controllers, Services, RBAC Middlewares
 │   └── tests/                   # Unit & API Integration test suite
 ├── docs/
-│   └── lab-02/                  # Lab 2 Specifications, Test plan, API & UI specs
+│   ├── lab-02/                  # Lab 2 Specifications, Test plan, API & UI specs
+│   └── lab-03/                  # Lab 3 Specifications, Test plan, Reviewer & AI logs
 └── package.json                 # Root scripts & configuration
 ```
 
@@ -91,14 +93,14 @@ npm run dev
 cd server
 npm test
 ```
-*Executes all unit tests (`UNIT-01` to `UNIT-09`) and API integration tests (`API-01` to `API-27`).*
+*Executes all unit tests and RBAC API integration tests.*
 
 ### 2) Frontend UI Component Tests (Vitest)
 ```bash
 cd client
 npm test
 ```
-*Executes client rendering and interaction tests.*
+*Executes client rendering, RBAC context, and interaction tests.*
 
 ### 3) End-to-End & Responsive Visual Tests (Playwright)
 From the repository root:
@@ -106,11 +108,20 @@ From the repository root:
 npx playwright test
 npx playwright show-report
 ```
-*Verifies user lifecycle flows (`E2E-01` to `E2E-07`) and captures responsive layout screenshots.*
+*Verifies multi-role user workflows and captures responsive layout screenshots.*
 
 ---
 
 ## Lab Deliverables & Documentation
+
+### Lab 3:
+- **Sprint 3 Specification** — Role-Based Authorization, IT Staff Queue & Operational Workflow, Admin User Management (`docs/lab-03/specification.md`)
+- **REST API Specification** — Authentication cookies, IT Queue & Comment/Note endpoints (`docs/lab-03/api-spec.md`)
+- **UI Specification** — Public comments, private internal notes, IT queue data table & mobile cards (`docs/lab-03/ui-spec.md`)
+- **Test Plan & Traceability** — 100% Acceptance Criteria traceability matrix (`docs/lab-03/tests.md`)
+- **Peer Reviewer Record** — Code review feedback & PR resolution log (`docs/lab-03/reviewer.md`)
+- **AI-Use Record** — Prompt engineering log & reflection (`docs/lab-03/ai-use.md`)
+- **Migration Strategy** — Database schema migration from Lab 2 to Lab 3 (`docs/lab-03/migration-strategy.md`)
 
 ### Lab 2:
 - **Sprint 2 Specification** — Comprehensive business rules and acceptance criteria (`docs/lab-02/specification.md`)
@@ -120,10 +131,10 @@ npx playwright show-report
 
 ---
 
-## Lab 2 Acceptance Summary
+## Lab 3 Acceptance Summary
 
-- **Requester Context & Isolation:** Development requester selection simulating authenticated sessions; strict data isolation across requesters with 403 Forbidden protection.
-- **Atomic Ticket Number Generation:** Format `TKT-YYYY-XXXXXX` with transaction-safe yearly rollover.
-- **Support Ticket Dashboard:** Search by keyword/number, filter by category/priority/status, pagination, and deterministic secondary sorting (`ticketNumber DESC`).
-- **Attachment Lifecycle Management:** Allowed types (JPG, PNG, WEBP, PDF ≤ 5 MB, max 5 active attachments), and audit-compliant soft-deletion requiring a reason.
-- **Zen Green Design & Responsiveness:** Fully responsive interface across Desktop (1280px), Tablet (768px), and Mobile (375px) featuring a collapsible mobile hamburger drawer and zero horizontal overflow.
+- **Authentication & RBAC:** Secure HTTP-only cookies, bcrypt password hashing, mandatory initial password change, and server-side 401/403 authorization across Requesters, IT Staff, and Administrators.
+- **IT Staff Queue & Operations:** Dedicated queue with search, status/priority filtering, ticket claiming/reassignment, and IT priority management.
+- **Comments & Internal Notes:** Public comments for Requester-IT Staff communication, and restricted internal notes with amber warning indicators for IT Staff/Admin audit trailing.
+- **Administrator User Management:** Searchable user table, single-role assignment (`REQUESTER`, `IT_STAFF`, `ADMINISTRATOR`), initial password reset, self-deactivation guard, and last-active admin protection constraint.
+

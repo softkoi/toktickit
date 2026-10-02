@@ -189,75 +189,76 @@ export const UserManagementPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
-          <p className="text-sm text-slate-500">Administrator controls for user accounts, roles, and password resets</p>
+          <h1 className="text-2xl font-bold text-slate-800">Users</h1>
+          <p className="text-sm text-slate-500">Manage accounts, roles, activation, and local initial passwords.</p>
         </div>
         <button
           onClick={() => { setShowCreateModal(true); setModalError(null); }}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-sm rounded-xl transition-all shadow-sm"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold text-sm rounded-xl transition-all shadow-sm"
         >
           <Plus size={18} />
-          <span>Create New User</span>
+          <span>+ Create User</span>
         </button>
       </div>
 
       {/* Banners */}
       {successMessage && (
-        <div className="mb-4 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 text-sm rounded-lg flex items-center justify-between">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center justify-between">
           <span>{successMessage}</span>
           <button onClick={() => setSuccessMessage(null)} className="text-emerald-700 font-bold">&times;</button>
         </div>
       )}
 
       {errorMessage && (
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 text-sm rounded-lg flex items-center justify-between">
+        <div className="p-4 bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl flex items-center justify-between">
           <span>{errorMessage}</span>
           <button onClick={() => setErrorMessage(null)} className="text-red-700 font-bold">&times;</button>
         </div>
       )}
 
       {/* Toolbar Filters */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3.5 top-3 text-slate-400" size={18} />
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-end gap-4">
+        <div className="flex-1">
+          <label className="block text-xs font-semibold text-slate-500 mb-1">Search name or email</label>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or email..."
-            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+            placeholder="Search name or email..."
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
           />
         </div>
 
         <div className="w-full md:w-56">
+          <label className="block text-xs font-semibold text-slate-500 mb-1">Role</label>
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
           >
-            <option value="">All Roles</option>
+            <option value="">All roles</option>
             <option value="REQUESTER">Requester</option>
             <option value="IT_STAFF">IT Staff</option>
             <option value="ADMINISTRATOR">Administrator</option>
           </select>
         </div>
 
-        <button
-          onClick={() => fetchUsers(1)}
-          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm flex items-center justify-center gap-1.5"
-          title="Refresh table"
-        >
-          <RefreshCw size={16} />
-          <span>Refresh</span>
-        </button>
+        {(search || roleFilter) && (
+          <button
+            onClick={() => { setSearch(''); setRoleFilter(''); }}
+            className="px-3 py-2 text-slate-500 hover:text-slate-800 text-sm font-medium"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
-      {/* Users Data Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Users Data Table (Desktop >= 1024px) */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hidden lg:block">
         {loading ? (
           <div className="p-12 text-center text-slate-500">Loading users...</div>
         ) : users.length === 0 ? (
@@ -266,58 +267,70 @@ export const UserManagementPage: React.FC = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">User</th>
+                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-600">
+                  <th className="py-3.5 px-4">Name</th>
+                  <th className="py-3.5 px-4">Email</th>
                   <th className="py-3.5 px-4">Role</th>
                   <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Password Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
+                  <th className="py-3.5 px-4 text-right">Edit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
                 {users.map((u) => (
                   <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-800">{u.name}</div>
-                      <div className="text-xs text-slate-500">{u.email}</div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full border ${getRoleBadgeStyle(u.role)}`}>
-                        {u.role}
-                      </span>
+                    <td className="py-3.5 px-4 font-semibold text-slate-800">{u.name}</td>
+                    <td className="py-3.5 px-4 text-slate-600 font-mono text-xs max-w-xs break-all">{u.email}</td>
+                    <td className="py-3.5 px-4 text-slate-600 text-xs font-medium">
+                      {u.role === 'ADMINISTRATOR' ? 'Administrator' : u.role === 'IT_STAFF' ? 'IT Staff' : 'Requester'}
                     </td>
                     <td className="py-3.5 px-4">
                       {u.isActive ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                          <UserCheck size={12} /> Active
+                        <span className="inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full border border-red-200">
-                          <UserX size={12} /> Inactive
+                        <span className="inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          Inactive
                         </span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      {u.mustChangePassword ? (
-                        <span className="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded font-medium border border-amber-200">
-                          Must Change Password
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-500">Normal</span>
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-2">
                       <button
                         onClick={() => openEditModal(u)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors"
+                        className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition-colors"
                       >
-                        <Edit2 size={13} /> Edit
+                        Edit
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setErrorMessage(null);
+                          try {
+                            const res = await fetch(`/api/admin/users/${u.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'include',
+                              body: JSON.stringify({ isActive: !u.isActive })
+                            });
+                            const data = await res.json();
+                            if (!res.ok) {
+                              setErrorMessage(data.error?.message || 'Failed to update activation status');
+                            } else {
+                              setSuccessMessage(`User "${u.name}" updated successfully`);
+                              fetchUsers(pagination.page);
+                            }
+                          } catch {
+                            setErrorMessage('Network error updating user status');
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium transition-colors"
+                      >
+                        {u.isActive ? 'Deactivate' : 'Activate'}
                       </button>
                       <button
                         onClick={() => { setResettingUser(u); setModalError(null); setNewInitialPassword('Password123!'); }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium transition-colors"
+                        className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-medium transition-colors"
                       >
-                        <Key size={13} /> Reset Password
+                        Reset Password
                       </button>
                     </td>
                   </tr>
@@ -350,6 +363,69 @@ export const UserManagementPage: React.FC = () => {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Mobile User Card View (< 1024px) */}
+      <div className="lg:hidden space-y-4">
+        {loading ? (
+          <div className="p-8 text-center text-slate-500">Loading users...</div>
+        ) : users.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">No users found matching search criteria.</div>
+        ) : (
+          users.map((u) => (
+            <div key={u.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="font-bold text-slate-800 text-sm">{u.name}</div>
+                {u.isActive ? (
+                  <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Active
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                    Inactive
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-slate-500 font-mono break-all">{u.email}</div>
+              <div className="text-xs font-medium text-slate-600">
+                Role: {u.role === 'ADMINISTRATOR' ? 'Administrator' : u.role === 'IT_STAFF' ? 'IT Staff' : 'Requester'}
+              </div>
+              <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => openEditModal(u)}
+                  className="w-full py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg text-xs transition-colors"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={async () => {
+                    setErrorMessage(null);
+                    try {
+                      const res = await fetch(`/api/admin/users/${u.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ isActive: !u.isActive })
+                      });
+                      const data = await res.json();
+                      if (!res.ok) {
+                        setErrorMessage(data.error?.message || 'Failed to update activation status');
+                      } else {
+                        setSuccessMessage(`User "${u.name}" updated successfully`);
+                        fetchUsers(pagination.page);
+                      }
+                    } catch {
+                      setErrorMessage('Network error updating user status');
+                    }
+                  }}
+                  className="w-full py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg text-xs transition-colors"
+                >
+                  {u.isActive ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Create User Modal */}

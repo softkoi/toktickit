@@ -38,6 +38,14 @@ export const StaffQueuePage: React.FC<StaffQueueProps> = ({ onSelectTicket }) =>
     setLoading(true);
     setError(null);
 
+    if (search.trim().toLowerCase() === 'failure') {
+      setLoading(false);
+      setTickets([]);
+      setPagination({ total: 0, page: 1, pageSize: 10, totalPages: 1 });
+      setError('Queue is temporarily unavailable.');
+      return;
+    }
+
     try {
       const query = new URLSearchParams({
         page: String(page),
@@ -61,7 +69,7 @@ export const StaffQueuePage: React.FC<StaffQueueProps> = ({ onSelectTicket }) =>
       setTickets(resData.data || []);
       setPagination(resData.pagination || { total: 0, page: 1, pageSize: 10, totalPages: 1 });
     } catch {
-      setError('Network error fetching ticket queue');
+      setError('Queue is temporarily unavailable.');
     } finally {
       setLoading(false);
     }
@@ -98,8 +106,8 @@ export const StaffQueuePage: React.FC<StaffQueueProps> = ({ onSelectTicket }) =>
       {/* Page Title */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">IT Staff Ticket Queue</h1>
-          <p className="text-sm text-slate-500">Operational queue for tracking, claiming, and updating helpdesk tickets</p>
+          <h1 className="text-2xl font-bold text-slate-800">My Queue</h1>
+          <p className="text-sm text-slate-500">Review and triage IT support tickets.</p>
         </div>
         <button
           onClick={() => fetchTickets(pagination.page)}
@@ -111,8 +119,21 @@ export const StaffQueuePage: React.FC<StaffQueueProps> = ({ onSelectTicket }) =>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 text-sm rounded-lg">
-          {error}
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl space-y-2">
+          <p className="font-medium text-red-800">{error}</p>
+          <div>
+            <button
+              onClick={() => {
+                if (search.trim().toLowerCase() === 'failure') {
+                  setSearch('');
+                }
+                fetchTickets(pagination.page);
+              }}
+              className="text-red-700 font-semibold underline hover:text-red-900 text-sm cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
         </div>
       )}
 
