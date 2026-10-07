@@ -27,10 +27,11 @@ export async function getActionsTaken(req: AuthRequest, res: Response) {
       });
     }
 
-    // Role & ownership check
+    // BR-03 & FR-ACT-06: Role & ownership check
+    // Requesters can only view Actions Taken on their owned tickets
     if (req.user?.role === 'REQUESTER' && ticket.requesterId !== req.user.id) {
       return res.status(403).json({
-        error: { code: 'FORBIDDEN', message: 'Access denied to this ticket' }
+        error: { code: 'FORBIDDEN', message: 'Access denied: You can only view actions taken on your own tickets' }
       });
     }
 
