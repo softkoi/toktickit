@@ -4,6 +4,7 @@ import { createTicket, getTickets, getTicketById, requestResolution } from '../c
 import { getPublicComments, createPublicComment, getInternalNotes, createInternalNote } from '../controllers/commentNote.controller';
 import { handleFileUpload } from '../middlewares/upload.middleware';
 import { uploadAttachment, downloadAttachment, removeAttachment } from '../controllers/attachment.controller';
+import { getActionsTaken, createActionTaken, updateActionTaken } from '../controllers/actionTaken.controller';
 
 const router = Router();
 
@@ -14,6 +15,11 @@ router.get('/tickets', getTickets);
 router.get('/tickets/:id', getTicketById);
 router.post('/tickets', createTicket);
 router.post('/tickets/:id/resolve-request', requestResolution);
+
+// Actions Taken
+router.get('/tickets/:id/actions-taken', getActionsTaken);
+router.post('/tickets/:id/actions-taken', createActionTaken);
+router.put('/actions-taken/:actionId', updateActionTaken);
 
 // Comments
 router.get('/tickets/:id/comments', getPublicComments);

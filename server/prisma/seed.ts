@@ -448,6 +448,60 @@ async function main() {
     }
   }
 
+  // 7. Seed Actions Taken
+  const actionsTakenData = [
+    {
+      ticketNumber: 'TK-2026-0002',
+      performedByEmail: 'staff1@toktickit.com',
+      description: 'Inspected VPN registry keys and re-registered network driver service.',
+      result: 'VPN driver initialized without 0x80070005 exception on cold boot.',
+      followUpRequired: true,
+      followUpNote: 'Re-verify registry permissions after next Windows Update batch.',
+      attachmentNotes: 'See vpn_driver_event_log.txt in attachment notes.'
+    },
+    {
+      ticketNumber: 'TK-2026-0002',
+      performedByEmail: 'staff2@toktickit.com',
+      description: 'Applied vendor patch v4.2.1 and cleared client session cache.',
+      result: 'User successfully connected to corporate gateway.',
+      followUpRequired: false,
+      followUpNote: null,
+      attachmentNotes: null
+    },
+    {
+      ticketNumber: 'TK-2026-0003',
+      performedByEmail: 'staff2@toktickit.com',
+      description: 'Tested USB-C Thunderbolt docking station with replacement 100W power adapter.',
+      result: 'Flickering reduced; replacement dock ordered for swap out.',
+      followUpRequired: true,
+      followUpNote: 'Swap dock unit upon arrival from vendor tomorrow.',
+      attachmentNotes: 'Dock Serial # DK-99481.'
+    }
+  ];
+
+  for (const act of actionsTakenData) {
+    const ticketId = ticketsMap[act.ticketNumber];
+    const performedById = usersMap[act.performedByEmail];
+
+    const existing = await prisma.actionTaken.findFirst({
+      where: { ticketId, performedById, description: act.description }
+    });
+
+    if (!existing) {
+      await prisma.actionTaken.create({
+        data: {
+          ticketId,
+          performedById,
+          description: act.description,
+          result: act.result,
+          followUpRequired: act.followUpRequired,
+          followUpNote: act.followUpNote,
+          attachmentNotes: act.attachmentNotes
+        }
+      });
+    }
+  }
+
   console.log('✅ TokTickIT Database Seeding completed successfully!');
 }
 

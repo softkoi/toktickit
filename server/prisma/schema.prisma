@@ -22,6 +22,7 @@ model User {
   ownedTickets       Ticket[]         @relation("OwnedTickets")
   publicComments     PublicComment[]
   internalNotes      InternalNote[]
+  actionsPerformed   ActionTaken[]    @relation("ActionsPerformed")
 }
 
 model Category {
@@ -66,6 +67,7 @@ model Ticket {
   attachments       Attachment[]
   publicComments    PublicComment[]
   internalNotes     InternalNote[]
+  actionsTaken      ActionTaken[]
 
   @@index([requesterId])
   @@index([ownerId])
@@ -118,3 +120,23 @@ model Attachment {
   @@index([ticketId])
   @@index([isRemoved])
 }
+
+model ActionTaken {
+  id               Int      @id @default(autoincrement())
+  ticketId         Int
+  performedById    Int
+  description      String
+  result           String
+  followUpRequired Boolean  @default(false)
+  followUpNote     String?
+  attachmentNotes  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  ticket      Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  performedBy User   @relation("ActionsPerformed", fields: [performedById], references: [id])
+
+  @@index([ticketId])
+  @@index([performedById])
+}
+
