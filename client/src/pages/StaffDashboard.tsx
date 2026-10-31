@@ -87,6 +87,19 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
     }
   };
 
+  const getPriorityBadgeStyle = (priority?: string) => {
+    switch (priority) {
+      case 'HIGH':
+        return 'bg-red-50 text-red-700 border-red-200 font-bold';
+      case 'MEDIUM':
+        return 'bg-amber-50 text-amber-700 border-amber-200 font-semibold';
+      case 'LOW':
+        return 'bg-slate-50 text-slate-600 border-slate-200 font-medium';
+      default:
+        return 'bg-slate-50 text-slate-500 border-slate-200';
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8" data-testid="staff-dashboard">
       {/* Header Banner */}
@@ -266,12 +279,22 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({
                       </span>
                     </div>
 
-                    <span
-                      style={{ backgroundColor: badge.bg, color: badge.color, borderColor: badge.border }}
-                      className="px-2.5 py-1 text-xs font-bold rounded-full border shrink-0 uppercase tracking-wider"
-                    >
-                      {(t.currentStatus || t.status).replace(/_/g, ' ')}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {(t.itPriority || t.requestedPriority) && (
+                        <span
+                          data-testid={`priority-badge-${t.id}`}
+                          className={`px-2 py-0.5 text-[10px] rounded-full border uppercase tracking-wider ${getPriorityBadgeStyle(t.itPriority || t.requestedPriority)}`}
+                        >
+                          {t.itPriority || t.requestedPriority}
+                        </span>
+                      )}
+                      <span
+                        style={{ backgroundColor: badge.bg, color: badge.color, borderColor: badge.border }}
+                        className="px-2.5 py-1 text-xs font-bold rounded-full border shrink-0 uppercase tracking-wider"
+                      >
+                        {(t.currentStatus || t.status).replace(/_/g, ' ')}
+                      </span>
+                    </div>
                   </div>
                 );
               })}

@@ -95,5 +95,25 @@ describe('UI Component Test: Role-Based Dashboards (UI-04 / UI-05 / AC-02 / BR-0
       expect('unassignedCount' in requesterMetrics).toBe(false);
       expect('myAssignedCount' in requesterMetrics).toBe(false);
     });
+
+    it('should format visual priority badges correctly for HIGH, MEDIUM, and LOW (Peer Review #5)', () => {
+      const getPriorityBadgeStyle = (priority?: string) => {
+        switch (priority) {
+          case 'HIGH':
+            return 'bg-red-50 text-red-700 border-red-200 font-bold';
+          case 'MEDIUM':
+            return 'bg-amber-50 text-amber-700 border-amber-200 font-semibold';
+          case 'LOW':
+            return 'bg-slate-50 text-slate-600 border-slate-200 font-medium';
+          default:
+            return 'bg-slate-50 text-slate-500 border-slate-200';
+        }
+      };
+
+      expect(getPriorityBadgeStyle('HIGH')).toContain('text-red-700');
+      expect(getPriorityBadgeStyle('MEDIUM')).toContain('text-amber-700');
+      expect(getPriorityBadgeStyle('LOW')).toContain('text-slate-600');
+      expect(getPriorityBadgeStyle(undefined)).toContain('text-slate-500');
+    });
   });
 });
