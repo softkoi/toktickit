@@ -3,6 +3,17 @@ import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, CheckCircle, AlertTriangle, Send, Lock, User, Shield } from 'lucide-react';
 import { ActionsTakenSection } from '../components/ActionsTakenSection';
 
+export const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  NEW: ['OPEN', 'IN_PROGRESS', 'CANCELLED'],
+  OPEN: ['IN_PROGRESS', 'WAITING_FOR_REQUESTER', 'RESOLVED', 'CANCELLED'],
+  IN_PROGRESS: ['WAITING_FOR_REQUESTER', 'RESOLVED', 'OPEN', 'CANCELLED'],
+  WAITING_FOR_REQUESTER: ['IN_PROGRESS', 'RESOLVED', 'CANCELLED'],
+  RESOLVED: ['CLOSED', 'REOPENED'],
+  CLOSED: ['REOPENED'],
+  REOPENED: ['IN_PROGRESS', 'RESOLVED', 'CANCELLED'],
+  CANCELLED: []
+};
+
 interface CommentItem {
   id: number;
   content: string;
@@ -146,16 +157,32 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
   };
 
   const handleUpdateStatus = async () => {
+    // Peer Review #2: Safety confirmation prompt for critical/terminal transitions
+    if (selectedStatus === 'RESOLVED' || selectedStatus === 'CANCELLED') {
+      const confirmed = window.confirm(
+        `Are you sure you want to transition this ticket to ${selectedStatus}? This is a significant workflow milestone.`
+      );
+      if (!confirmed) return;
+    }
+
     setError(null);
     try {
       const res = await fetch(`/api/staff/tickets/${ticketId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ status: selectedStatus })
+        body: JSON.stringify({
+          status: selectedStatus,
+          lastKnownUpdatedAt: ticket?.updatedAt
+        })
       });
       if (!res.ok) {
         const data = await res.json();
+        if (res.status === 409) {
+          setError('Conflict: This ticket was modified by another user. Reloading ticket data...');
+          setTimeout(() => fetchTicket(), 1500);
+          return;
+        }
         setError(data.error?.message || 'Invalid status transition');
       } else {
         setActionSuccess(`Status updated to ${selectedStatus}`);
@@ -379,24 +406,38 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Next permitted status</label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
-              >
-                <option value="NEW">NEW</option>
-                <option value="OPEN">OPEN</option>
-                <option value="IN_PROGRESS">IN_PROGRESS (current)</option>
-                <option value="WAITING_FOR_REQUESTER">WAITING_FOR_REQUESTER</option>
-                <option value="RESOLVED">RESOLVED</option>
-                <option value="CLOSED">CLOSED</option>
-                <option value="REOPENED">REOPENED</option>
-                <option value="CANCELLED">CANCELLED</option>
-              </select>
+              {(() => {
+                const current = ticket?.currentStatus || 'NEW';
+                const nextOptions = ALLOWED_STATUS_TRANSITIONS[current] || [];
+                const permitted = [current, ...nextOptions];
+                const isTerminal = nextOptions.length === 0;
+
+                return (
+                  <>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      disabled={isTerminal}
+                      data-testid="status-select-dropdown"
+                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold bg-white focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      {permitted.map((st) => (
+                        <option key={st} value={st}>
+                          {st.replace(/_/g, ' ')} {st === current ? '(current)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {isTerminal && (
+                      <p className="mt-1 text-[11px] text-slate-400 italic">Terminal state: no further transitions permitted</p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             <button
               onClick={handleUpdateStatus}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+              disabled={ticket ? (ALLOWED_STATUS_TRANSITIONS[ticket.currentStatus] || []).length === 0 || selectedStatus === ticket.currentStatus : false}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
             >
               Update status
             </button>
