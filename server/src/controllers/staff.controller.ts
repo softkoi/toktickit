@@ -4,14 +4,14 @@ import { AuthRequest } from '../middlewares/authMiddleware';
 
 const prisma = new PrismaClient();
 
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  NEW: ['OPEN', 'CANCELLED'],
-  OPEN: ['IN_PROGRESS', 'WAITING_FOR_REQUESTER', 'CANCELLED'],
-  IN_PROGRESS: ['WAITING_FOR_REQUESTER', 'RESOLVED', 'CANCELLED'],
+export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  NEW: ['OPEN', 'IN_PROGRESS', 'CANCELLED'],
+  OPEN: ['IN_PROGRESS', 'WAITING_FOR_REQUESTER', 'RESOLVED', 'CANCELLED'],
+  IN_PROGRESS: ['WAITING_FOR_REQUESTER', 'RESOLVED', 'OPEN', 'CANCELLED'],
   WAITING_FOR_REQUESTER: ['IN_PROGRESS', 'RESOLVED', 'CANCELLED'],
   RESOLVED: ['CLOSED', 'REOPENED'],
   CLOSED: ['REOPENED'],
-  REOPENED: ['IN_PROGRESS', 'RESOLVED'],
+  REOPENED: ['IN_PROGRESS', 'RESOLVED', 'CANCELLED'],
   CANCELLED: []
 };
 
@@ -270,7 +270,14 @@ export async function updateTicketStatus(req: AuthRequest, res: Response) {
       });
     }
 
-    const { status } = req.body;
+    // Role check: Only IT Staff and Admin can update ticket status
+    if (req.user?.role === 'REQUESTER') {
+      return res.status(403).json({
+        error: { code: 'FORBIDDEN', message: 'Requesters are not permitted to change ticket status directly' }
+      });
+    }
+
+    const { status, lastKnownUpdatedAt } = req.body;
     if (!status) {
       return res.status(400).json({
         error: { code: 'INVALID_INPUT', message: 'Status is required' }
@@ -282,6 +289,20 @@ export async function updateTicketStatus(req: AuthRequest, res: Response) {
       return res.status(404).json({
         error: { code: 'NOT_FOUND', message: 'Ticket not found' }
       });
+    }
+
+    // BR-08 / API-12: Optimistic Concurrency Control (stale update detection)
+    if (lastKnownUpdatedAt) {
+      const clientTime = new Date(lastKnownUpdatedAt).getTime();
+      const serverTime = new Date(ticket.updatedAt).getTime();
+      if (!isNaN(clientTime) && Math.abs(clientTime - serverTime) > 1000) {
+        return res.status(409).json({
+          error: {
+            code: 'CONFLICT',
+            message: 'Conflict: Ticket has been modified by another user. Please refresh and try again.'
+          }
+        });
+      }
     }
 
     if (!isValidStatusTransition(ticket.currentStatus, status)) {

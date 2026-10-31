@@ -356,15 +356,33 @@ export async function requestResolution(req: AuthRequest, res: Response) {
       });
     }
 
-    // Set currentStatus to WAITING_FOR_REQUESTER or log resolution request confirmation
+    // FR-WF-02 & BR-06: Requester resolution indication is purely advisory.
+    // Creates an advisory public comment and ensures status is NOT set to RESOLVED directly.
+    const advisoryComment = await prisma.publicComment.create({
+      data: {
+        ticketId,
+        authorId: req.user!.id,
+        content: '[Advisory]: The requester has indicated that the problem appears resolved. Formal review by IT Staff required.'
+      },
+      include: {
+        author: { select: { id: true, name: true, role: true } }
+      }
+    });
+
     const updatedTicket = await prisma.ticket.update({
       where: { id: ticketId },
-      data: { currentStatus: 'WAITING_FOR_REQUESTER' }
+      data: { currentStatus: 'WAITING_FOR_REQUESTER' },
+      include: {
+        requester: { select: { id: true, name: true, email: true } },
+        owner: { select: { id: true, name: true, email: true, role: true } }
+      }
     });
 
     return res.status(200).json({
-      message: 'Problem marked as resolution requested',
-      ticket: updatedTicket
+      message: 'Problem marked as resolution requested (advisory recorded)',
+      advisory: true,
+      ticket: updatedTicket,
+      comment: advisoryComment
     });
   } catch (error) {
     return res.status(500).json({
