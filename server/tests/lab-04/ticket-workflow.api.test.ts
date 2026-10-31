@@ -145,6 +145,8 @@ describe('API Integration Tests: Ticket Workflow & Formal Resolution Gate (Lab 0
     expect(res.status).toBe(400);
     expect(res.body.error).toBeDefined();
     expect(res.body.error.code).toBe('INVALID_TRANSITION');
+    expect(res.body.error.details?.permittedNextStatuses).toBeDefined();
+    expect(res.body.error.details.permittedNextStatuses).toContain('OPEN');
 
     // Verify status was not modified
     const dbTicket = await prisma.ticket.findUnique({ where: { id: ticketNewId } });

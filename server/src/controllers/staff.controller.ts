@@ -309,7 +309,10 @@ export async function updateTicketStatus(req: AuthRequest, res: Response) {
       return res.status(400).json({
         error: {
           code: 'INVALID_TRANSITION',
-          message: `Cannot transition status from ${ticket.currentStatus} to ${status}`
+          message: `Cannot transition status from ${ticket.currentStatus} to ${status}`,
+          details: {
+            permittedNextStatuses: ALLOWED_TRANSITIONS[ticket.currentStatus] || []
+          }
         }
       });
     }

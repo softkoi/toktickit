@@ -157,6 +157,14 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
   };
 
   const handleUpdateStatus = async () => {
+    // Peer Review #2: Safety confirmation prompt for critical/terminal transitions
+    if (selectedStatus === 'RESOLVED' || selectedStatus === 'CANCELLED') {
+      const confirmed = window.confirm(
+        `Are you sure you want to transition this ticket to ${selectedStatus}? This is a significant workflow milestone.`
+      );
+      if (!confirmed) return;
+    }
+
     setError(null);
     try {
       const res = await fetch(`/api/staff/tickets/${ticketId}/status`, {
