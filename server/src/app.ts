@@ -6,6 +6,7 @@ import ticketRoutes from './routes/ticket.routes';
 import authRoutes from './routes/auth.routes';
 import adminRoutes from './routes/admin.routes';
 import staffRoutes from './routes/staff.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.use('/api', authRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', staffRoutes);
 app.use('/api', ticketRoutes);
+app.use('/api', dashboardRoutes);
 
 // 404 Handler
 app.use((_req, res) => {
