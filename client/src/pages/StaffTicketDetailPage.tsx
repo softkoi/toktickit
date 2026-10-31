@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, CheckCircle, AlertTriangle, Send, Lock, User, Shield } from 'lucide-react';
+import { ActionsTakenSection } from '../components/ActionsTakenSection';
 
 interface CommentItem {
   id: number;
@@ -428,6 +429,9 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
           )}
         </div>
       </div>
+
+      {/* Actions Taken Section */}
+      <ActionsTakenSection ticketId={ticket.id} />
 
       {/* Card 4: Side-by-Side Public Comments & Internal Notes Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
