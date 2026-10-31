@@ -125,6 +125,27 @@ export const ActionsTakenList: React.FC<ActionsTakenListProps> = ({
                   (edited)
                 </span>
               )}
+
+              {action.followUpRequired && (
+                <span
+                  data-testid={`followup-badge-${action.id}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    backgroundColor: '#fff3cd',
+                    color: '#856404',
+                    border: '1px solid #ffeeba',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <AlertCircle size={12} />
+                  Follow-Up Needed
+                </span>
+              )}
             </div>
 
             {canEdit && onEdit && (

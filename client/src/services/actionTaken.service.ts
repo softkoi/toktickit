@@ -1,13 +1,32 @@
 import { ActionTakenItem, CreateActionTakenDto, UpdateActionTakenDto } from '../types/actionTaken.types';
 
+export class ActionTakenApiError extends Error {
+  status?: number;
+  code?: string;
+
+  constructor(message: string, status?: number, code?: string) {
+    super(message);
+    this.name = 'ActionTakenApiError';
+    this.status = status;
+    this.code = code;
+    Object.setPrototypeOf(this, ActionTakenApiError.prototype);
+  }
+}
+
+async function handleApiError(response: Response, fallbackMessage: string): Promise<never> {
+  const data = await response.json().catch(() => ({}));
+  const message = data.error?.message || fallbackMessage;
+  const code = data.error?.code;
+  throw new ActionTakenApiError(message, response.status, code);
+}
+
 export async function getActionsTaken(ticketId: number): Promise<ActionTakenItem[]> {
   const response = await fetch(`/api/tickets/${ticketId}/actions-taken`, {
     credentials: 'include',
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error?.message || 'Failed to fetch actions taken');
+    await handleApiError(response, 'Failed to fetch actions taken');
   }
 
   const data = await response.json();
@@ -28,8 +47,7 @@ export async function createActionTaken(
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error?.message || 'Failed to create action taken');
+    await handleApiError(response, 'Failed to create action taken');
   }
 
   const data = await response.json();
@@ -50,8 +68,7 @@ export async function updateActionTaken(
   });
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error?.message || 'Failed to update action taken');
+    await handleApiError(response, 'Failed to update action taken');
   }
 
   const data = await response.json();

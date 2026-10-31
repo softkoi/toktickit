@@ -43,17 +43,17 @@ export const ActionTakenForm: React.FC<ActionTakenFormProps> = ({
   const validate = (): boolean => {
     const newErrors: typeof errors = {};
 
-    if (!description.trim()) {
-      newErrors.description = 'Action description is required';
+    if (!description.trim() || description.trim().length < 3) {
+      newErrors.description = 'Action description is required (min. 3 characters)';
     }
 
-    if (!result.trim()) {
-      newErrors.result = 'Result is required';
+    if (!result.trim() || result.trim().length < 3) {
+      newErrors.result = 'Result is required (min. 3 characters)';
     }
 
-    // BR-04 & AC-05: When followUpRequired is true, followUpNote is mandatory
-    if (followUpRequired && !followUpNote.trim()) {
-      newErrors.followUpNote = 'Follow-up note is required when follow-up is requested';
+    // BR-04 & AC-05: When followUpRequired is true, followUpNote is mandatory (min. 3 chars)
+    if (followUpRequired && (!followUpNote.trim() || followUpNote.trim().length < 3)) {
+      newErrors.followUpNote = 'Follow-up note is required (min. 3 characters) when follow-up is requested';
     }
 
     setErrors(newErrors);
@@ -142,7 +142,8 @@ export const ActionTakenForm: React.FC<ActionTakenFormProps> = ({
           htmlFor="action-description"
           style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', fontWeight: 600, color: '#212529' }}
         >
-          Action Description <span style={{ color: '#dc3545' }}>*</span>
+          Action Description <span style={{ color: '#dc3545' }}>*</span>{' '}
+          <span style={{ fontSize: '0.78rem', color: '#6c757d', fontWeight: 400 }}>(min. 3 characters)</span>
         </label>
         <textarea
           id="action-description"
@@ -175,7 +176,8 @@ export const ActionTakenForm: React.FC<ActionTakenFormProps> = ({
           htmlFor="action-result"
           style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', fontWeight: 600, color: '#212529' }}
         >
-          Result / Outcome <span style={{ color: '#dc3545' }}>*</span>
+          Result / Outcome <span style={{ color: '#dc3545' }}>*</span>{' '}
+          <span style={{ fontSize: '0.78rem', color: '#6c757d', fontWeight: 400 }}>(min. 3 characters)</span>
         </label>
         <textarea
           id="action-result"
@@ -234,7 +236,8 @@ export const ActionTakenForm: React.FC<ActionTakenFormProps> = ({
             htmlFor="action-followup-note"
             style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', fontWeight: 600, color: '#212529' }}
           >
-            Follow-up Note <span style={{ color: '#dc3545' }}>*</span>
+            Follow-up Note <span style={{ color: '#dc3545' }}>*</span>{' '}
+            <span style={{ fontSize: '0.78rem', color: '#6c757d', fontWeight: 400 }}>(min. 3 characters)</span>
           </label>
           <input
             type="text"
