@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Clock, FileText, PlusCircle, Users, Shield, LogOut, Menu, X } from 'lucide-react';
+import { Clock, FileText, PlusCircle, Users, Shield, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
 
-export type NavTab = 'my-tickets' | 'create-ticket' | 'staff-queue' | 'user-management';
+export type NavTab = 'dashboard' | 'my-tickets' | 'create-ticket' | 'staff-queue' | 'user-management';
 
 interface NavbarProps {
   activeTab?: NavTab;
   onNavigate?: (tab: NavTab) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavigate }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'dashboard', onNavigate }) => {
   const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -36,9 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
             className="navbar-brand"
             onClick={(e) => {
               e.preventDefault();
-              if (user?.role === 'ADMINISTRATOR') handleNavigate('user-management');
-              else if (user?.role === 'IT_STAFF') handleNavigate('staff-queue');
-              else handleNavigate('my-tickets');
+              handleNavigate('dashboard');
             }}
           >
             <div className="logo-icon-box">
@@ -51,6 +49,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
           <nav className="nav-links desktop-nav">
             {(user?.role === 'REQUESTER' || !user) && (
               <>
+                <button 
+                  className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('dashboard')}
+                  data-testid="nav-requester-dashboard"
+                >
+                  <LayoutDashboard size={16} />
+                  <span>Dashboard</span>
+                </button>
                 <button 
                   className={`nav-link ${activeTab === 'my-tickets' ? 'active' : ''}`}
                   onClick={() => handleNavigate('my-tickets')}
@@ -71,6 +77,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
             {user?.role === 'IT_STAFF' && (
               <>
                 <button 
+                  className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('dashboard')}
+                  data-testid="nav-staff-dashboard"
+                >
+                  <LayoutDashboard size={16} />
+                  <span>Dashboard</span>
+                </button>
+                <button 
                   className={`nav-link ${activeTab === 'staff-queue' ? 'active' : ''}`}
                   onClick={() => handleNavigate('staff-queue')}
                 >
@@ -89,6 +103,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
 
             {user?.role === 'ADMINISTRATOR' && (
               <>
+                <button 
+                  className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('dashboard')}
+                  data-testid="nav-admin-dashboard"
+                >
+                  <LayoutDashboard size={16} />
+                  <span>Dashboard</span>
+                </button>
                 <button 
                   className={`nav-link ${activeTab === 'user-management' ? 'active' : ''}`}
                   onClick={() => handleNavigate('user-management')}
@@ -199,6 +221,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
             {(user?.role === 'REQUESTER' || !user) && (
               <>
                 <button 
+                  className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('dashboard')}
+                >
+                  <LayoutDashboard size={18} className="text-emerald-300" />
+                  <span>Dashboard</span>
+                </button>
+                <button 
                   className={`mobile-nav-item ${activeTab === 'my-tickets' ? 'active' : ''}`}
                   onClick={() => handleNavigate('my-tickets')}
                 >
@@ -218,6 +247,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
             {user?.role === 'IT_STAFF' && (
               <>
                 <button 
+                  className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('dashboard')}
+                >
+                  <LayoutDashboard size={18} className="text-emerald-300" />
+                  <span>Dashboard</span>
+                </button>
+                <button 
                   className={`mobile-nav-item ${activeTab === 'staff-queue' ? 'active' : ''}`}
                   onClick={() => handleNavigate('staff-queue')}
                 >
@@ -236,6 +272,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'my-tickets', onNavi
 
             {user?.role === 'ADMINISTRATOR' && (
               <>
+                <button 
+                  className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => handleNavigate('dashboard')}
+                >
+                  <LayoutDashboard size={18} className="text-emerald-300" />
+                  <span>Dashboard</span>
+                </button>
                 <button 
                   className={`mobile-nav-item ${activeTab === 'user-management' ? 'active' : ''}`}
                   onClick={() => handleNavigate('user-management')}

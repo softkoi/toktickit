@@ -10,23 +10,19 @@ import { TicketDetailPage } from './pages/TicketDetailPage';
 import { StaffQueuePage } from './pages/StaffQueuePage';
 import { StaffTicketDetailPage } from './pages/StaffTicketDetailPage';
 import { UserManagementPage } from './pages/UserManagementPage';
+import { RequesterDashboard } from './pages/RequesterDashboard';
+import { StaffDashboard } from './pages/StaffDashboard';
 
 export const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<NavTab>('my-tickets');
+  const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [viewingTicketDetail, setViewingTicketDetail] = useState(false);
 
-  // Default initial page depending on user role
+  // Default initial page to dashboard
   useEffect(() => {
     if (user) {
-      if (user.role === 'ADMINISTRATOR') {
-        setActiveTab('user-management');
-      } else if (user.role === 'IT_STAFF') {
-        setActiveTab('staff-queue');
-      } else {
-        setActiveTab('my-tickets');
-      }
+      setActiveTab('dashboard');
       setViewingTicketDetail(false);
     }
   }, [user?.role]);
@@ -85,6 +81,22 @@ export const AppContent: React.FC = () => {
         {/* Main Tabs when not in detail view */}
         {!viewingTicketDetail && (
           <>
+            {activeTab === 'dashboard' && (
+              user.role === 'REQUESTER' ? (
+                <RequesterDashboard
+                  onNavigateToCreateTicket={() => setActiveTab('create-ticket')}
+                  onNavigateToMyTickets={() => setActiveTab('my-tickets')}
+                  onSelectTicket={handleSelectTicket}
+                />
+              ) : (
+                <StaffDashboard
+                  onNavigateToQueue={() => setActiveTab('staff-queue')}
+                  onNavigateToCreateTicket={() => setActiveTab('create-ticket')}
+                  onSelectTicket={handleSelectTicket}
+                />
+              )
+            )}
+
             {activeTab === 'my-tickets' && (
               <MyTicketsPage
                 onNavigateToCreateTicket={() => setActiveTab('create-ticket')}
