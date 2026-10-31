@@ -17,6 +17,7 @@ import {
   Send,
   Check
 } from 'lucide-react';
+import { ActionsTakenSection } from '../components/ActionsTakenSection';
 
 export interface AttachmentDetail {
   id: number;
@@ -321,6 +322,9 @@ export const TicketDetailPage: React.FC<TicketDetailPageProps> = ({ ticketId, on
               </div>
             </div>
           )}
+
+          {/* Actions Taken Section */}
+          <ActionsTakenSection ticketId={ticket.id} />
 
           {/* Public Comments Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
