@@ -12,10 +12,10 @@ describe('API Test: Attachment Quota Enforcement (TEST-010 / AC-06)', () => {
   let ticketId: number;
 
   beforeAll(async () => {
-    const requester = await prisma.requesterUser.upsert({
+    const requester = await prisma.user.upsert({
       where: { email: 'quotaUser@example.com' },
       update: { isActive: true },
-      create: { id: 994, name: 'Quota Test User', email: 'quotaUser@example.com', isActive: true },
+      create: { name: 'Quota Test User', email: 'quotaUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     requesterId = requester.id;
 

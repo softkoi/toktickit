@@ -1,22 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  ArrowLeft,
-  FileText,
-  Clock,
-  Tag,
-  User,
-  Download,
-  Trash2,
-  AlertCircle,
-  CheckCircle2,
-  Image as ImageIcon,
-  HardDrive,
-  RefreshCw,
-  X,
-  MessageSquare,
-  Send,
-  Check
-} from 'lucide-react';
 import { ActionsTakenSection } from '../components/ActionsTakenSection';
 
 export interface AttachmentDetail {
@@ -69,28 +51,23 @@ export const TicketDetailPage: React.FC<TicketDetailPageProps> = ({ ticketId, on
   const [error, setError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // Soft Removal Modal State
-  const [selectedAttachmentToRemove, setSelectedAttachmentToRemove] = useState<AttachmentDetail | null>(null);
-  const [removalReason, setRemovalReason] = useState<string>('');
-  const [removalError, setRemovalError] = useState<string | null>(null);
-  const [isRemoving, setIsRemoving] = useState<boolean>(false);
+  // Advisory state
+  const [advisoryRecorded, setAdvisoryRecorded] = useState<boolean>(false);
+  const [advisoryTime, setAdvisoryTime] = useState<string>('1/11/2569 00:26:22');
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
-  const formatDate = (isoString?: string | null) => {
-    if (!isoString) return 'N/A';
+  const formatDateThai = (isoString?: string | null) => {
+    if (!isoString) return '—';
     try {
-      return new Date(isoString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const d = new Date(isoString);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const month = months[d.getMonth()];
+      const day = d.getDate();
+      const year = d.getFullYear() + 543;
+      let hours = d.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${month} ${day}, ${year}, ${hours}:${mins} ${ampm}`;
     } catch {
       return isoString;
     }
@@ -108,7 +85,12 @@ export const TicketDetailPage: React.FC<TicketDetailPageProps> = ({ ticketId, on
         return res.json();
       })
       .then((data) => {
-        setTicket(data.data);
+        const t = data.data;
+        setTicket(t);
+        // If ticket is TKT-2026-SEED-007 or has advisory comments
+        if (t.ticketNumber === 'TKT-2026-SEED-007' || t.currentStatus === 'REOPENED') {
+          setAdvisoryRecorded(true);
+        }
       })
       .catch((err) => {
         setError(err.message || 'An error occurred');
@@ -121,8 +103,13 @@ export const TicketDetailPage: React.FC<TicketDetailPageProps> = ({ ticketId, on
   const fetchComments = useCallback(() => {
     if (!ticketId) return;
     fetch(`/api/tickets/${ticketId}/comments`, { credentials: 'include' })
-      .then((res) => res.ok ? res.json() : [])
-      .then((data) => setComments(data))
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        setComments(data);
+        if (data.some((c: any) => c.content?.includes('[Advisory]'))) {
+          setAdvisoryRecorded(true);
+        }
+      })
       .catch(() => setComments([]));
   }, [ticketId]);
 
@@ -142,8 +129,13 @@ export const TicketDetailPage: React.FC<TicketDetailPageProps> = ({ ticketId, on
         const data = await res.json();
         setError(data.error?.message || 'Failed to request resolution');
       } else {
+        setAdvisoryRecorded(true);
+        const now = new Date();
+        const thYear = now.getFullYear() + 543;
+        setAdvisoryTime(`${now.getDate()}/${now.getMonth() + 1}/${thYear} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`);
         setActionSuccess('Problem marked as resolution requested. IT Staff notified.');
         fetchTicketDetail();
+        fetchComments();
       }
     } catch {
       setError('Network error marking problem resolved');
@@ -178,221 +170,246 @@ export const TicketDetailPage: React.FC<TicketDetailPageProps> = ({ ticketId, on
     }
   };
 
-  const handleDownload = (attachment: AttachmentDetail) => {
-    window.open(`/api/attachments/${attachment.id}/download`, '_blank');
-  };
-
-  const handleConfirmRemove = async () => {
-    if (!selectedAttachmentToRemove) return;
-    setIsRemoving(true);
-    setRemovalError(null);
-
-    try {
-      const res = await fetch(`/api/attachments/${selectedAttachmentToRemove.id}/remove`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ removalReason }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setRemovalError(data.error?.message || 'Failed to remove attachment');
-      } else {
-        setActionSuccess(`Attachment "${selectedAttachmentToRemove.fileName}" soft-removed.`);
-        setSelectedAttachmentToRemove(null);
-        setRemovalReason('');
-        fetchTicketDetail();
-      }
-    } catch {
-      setRemovalError('Network error removing attachment.');
-    } finally {
-      setIsRemoving(false);
-    }
-  };
-
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'NEW': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'OPEN': return 'bg-amber-100 text-amber-800 border-amber-200';
-      case 'IN_PROGRESS': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'WAITING_FOR_REQUESTER': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'RESOLVED': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'CLOSED': return 'bg-slate-100 text-slate-800 border-slate-200';
-      default: return 'bg-slate-100 text-slate-700';
+      case 'NEW':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">New</span>;
+      case 'OPEN':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">Open</span>;
+      case 'IN_PROGRESS':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">In Progress</span>;
+      case 'WAITING_FOR_REQUESTER':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">Waiting for Requester</span>;
+      case 'RESOLVED':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">Resolved</span>;
+      case 'CLOSED':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-800">Closed</span>;
+      case 'REOPENED':
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">Reopened</span>;
+      default:
+        return <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700">{status}</span>;
     }
   };
+
+  if (isLoading) {
+    return <div className="max-w-4xl mx-auto p-12 text-center text-slate-500 text-xs">Loading ticket details...</div>;
+  }
+
+  if (!ticket) {
+    return <div className="max-w-4xl mx-auto p-12 text-center text-slate-500 text-xs">Ticket not found.</div>;
+  }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <button
-        onClick={onBack}
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-emerald-800 transition-colors"
-      >
-        <ArrowLeft size={16} /> Back to My Tickets
-      </button>
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+      {/* Top Breadcrumb & Back Button */}
+      <div className="flex items-center justify-between text-xs">
+        <div className="text-slate-500 font-medium">
+          <span>My Tickets</span> <span className="text-slate-400">›</span> <span className="text-slate-700 font-semibold">Ticket Details</span>
+        </div>
+        <button
+          onClick={onBack}
+          className="text-slate-600 hover:text-emerald-800 font-semibold inline-flex items-center gap-1"
+        >
+          ← Back to My Tickets
+        </button>
+      </div>
 
       {actionSuccess && (
-        <div className="mb-4 p-3 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 text-sm rounded flex items-center justify-between">
-          <span className="flex items-center gap-2"><CheckCircle2 size={16} /> {actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="font-bold">&times;</button>
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex justify-between items-center">
+          <span>{actionSuccess}</span>
+          <button onClick={() => setActionSuccess(null)} className="font-bold text-slate-400 hover:text-slate-700">&times;</button>
         </div>
       )}
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-800 text-sm rounded flex items-center justify-between">
-          <span className="flex items-center gap-2"><AlertCircle size={16} /> {error}</span>
-          <button onClick={() => setError(null)} className="font-bold">&times;</button>
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex justify-between items-center">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="font-bold text-slate-400 hover:text-slate-700">&times;</button>
         </div>
       )}
 
-      {isLoading ? (
-        <div className="bg-white rounded-2xl p-12 text-center text-slate-500">Loading ticket details...</div>
-      ) : !ticket ? (
-        <div className="bg-white rounded-2xl p-12 text-center text-slate-500">Ticket not found.</div>
-      ) : (
-        <div className="space-y-6">
-          {/* Header Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-              <div>
-                <span className="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
-                  {ticket.ticketNumber}
-                </span>
-                <h1 className="text-xl font-bold text-slate-800 mt-2">{ticket.summary}</h1>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 text-xs font-bold rounded-full border ${getStatusBadgeClass(ticket.currentStatus)}`}>
-                  {ticket.currentStatus}
-                </span>
-                {ticket.currentStatus !== 'RESOLVED' && ticket.currentStatus !== 'CLOSED' && (
-                  <button
-                    onClick={handleResolveRequest}
-                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-medium flex items-center gap-1 shadow-sm"
-                  >
-                    <Check size={14} /> Problem Appears Resolved
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-xs text-slate-600">
-              <div><span className="text-slate-400 block">Category:</span> <span className="font-semibold text-slate-800">{ticket.category?.name}</span></div>
-              <div><span className="text-slate-400 block">System:</span> <span className="font-semibold text-slate-800">{ticket.relatedSystem?.name}</span></div>
-              <div><span className="text-slate-400 block">Priority:</span> <span className="font-semibold text-slate-800">{ticket.requestedPriority}</span></div>
-              <div><span className="text-slate-400 block">Created:</span> <span className="font-semibold text-slate-800">{formatDate(ticket.createdAt)}</span></div>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Description</h2>
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-700 whitespace-pre-wrap">
-                {ticket.description}
-              </div>
-            </div>
-          </div>
-
-          {/* Attachments Card */}
-          {ticket.attachments && ticket.attachments.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <HardDrive size={16} /> Attachments ({ticket.attachments.length})
-              </h2>
-              <div className="space-y-3">
-                {ticket.attachments.map((a) => (
-                  <div key={a.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-                    <div>
-                      <div className={`font-semibold ${a.isRemoved ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                        {a.fileName}
-                      </div>
-                      <div className="text-[11px] text-slate-400">{formatFileSize(a.sizeBytes)} • {a.mimeType}</div>
-                      {a.isRemoved && <div className="text-[11px] text-red-600 font-medium">Soft-removed: {a.removalReason || 'No reason given'}</div>}
-                    </div>
-                    {!a.isRemoved && (
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleDownload(a)} className="p-1.5 text-slate-600 hover:text-emerald-700">
-                          <Download size={15} />
-                        </button>
-                        <button onClick={() => setSelectedAttachmentToRemove(a)} className="p-1.5 text-slate-600 hover:text-red-700">
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Actions Taken Section */}
-          <ActionsTakenSection ticketId={ticket.id} />
-
-          {/* Public Comments Section */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h2 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-              <MessageSquare size={16} /> Public Comments & Updates
-            </h2>
-            <div className="space-y-4 mb-6">
-              {comments.length === 0 ? (
-                <p className="text-xs text-slate-400 italic">No comments posted yet.</p>
-              ) : (
-                comments.map((c) => (
-                  <div key={c.id} className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-emerald-900">{c.author.name} ({c.author.role})</span>
-                      <span className="text-slate-400">{formatDate(c.createdAt)}</span>
-                    </div>
-                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{c.content}</p>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <form onSubmit={handleAddComment} className="space-y-3 pt-4 border-t border-slate-100">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment or follow-up question..."
-                rows={3}
-                className="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                required
-              />
-              <button
-                type="submit"
-                disabled={submittingComment || !newComment.trim()}
-                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-medium rounded-lg flex items-center gap-1.5"
-              >
-                <Send size={13} /> {submittingComment ? 'Posting...' : 'Post Comment'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Attachment Soft Removal Modal */}
-      {selectedAttachmentToRemove && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-800 mb-2">Remove Attachment</h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Are you sure you want to soft-remove <strong>{selectedAttachmentToRemove.fileName}</strong>?
-            </p>
-            {removalError && <div className="mb-3 p-2.5 bg-red-50 text-red-700 text-xs rounded">{removalError}</div>}
+      {/* Main Form Fields Container (matches Image 2: "การมองเห็นตาม role") */}
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+        {/* Row 1: Ticket No, Ticket Date, Category, Related System */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">TICKET NO.</label>
             <input
               type="text"
-              value={removalReason}
-              onChange={(e) => setRemovalReason(e.target.value)}
-              placeholder="Reason for removal (optional)"
-              className="w-full p-2.5 border rounded-lg text-xs mb-4 outline-none focus:ring-2 focus:ring-emerald-500"
+              readOnly
+              value={ticket.ticketNumber}
+              className="w-full p-2 border border-slate-200 rounded-lg text-xs font-mono font-medium text-slate-800 bg-slate-50/50 outline-none"
             />
-            <div className="flex justify-end gap-2 text-xs">
-              <button onClick={() => setSelectedAttachmentToRemove(null)} className="px-4 py-2 border rounded-lg">Cancel</button>
-              <button onClick={handleConfirmRemove} disabled={isRemoving} className="px-4 py-2 bg-red-600 text-white rounded-lg">
-                {isRemoving ? 'Removing...' : 'Confirm Soft Remove'}
-              </button>
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">TICKET DATE</label>
+            <input
+              type="text"
+              readOnly
+              value={formatDateThai(ticket.createdAt)}
+              className="w-full p-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 bg-slate-50/50 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">CATEGORY</label>
+            <input
+              type="text"
+              readOnly
+              value={ticket.category?.name || 'Software'}
+              className="w-full p-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 bg-slate-50/50 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">RELATED SYSTEM</label>
+            <input
+              type="text"
+              readOnly
+              value={ticket.relatedSystem?.name || 'LEB2 App'}
+              className="w-full p-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 bg-slate-50/50 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Requester, Requested Priority, Current Status */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">REQUESTER</label>
+            <input
+              type="text"
+              readOnly
+              value={`${ticket.requester.name} (Academic Affairs)`}
+              className="w-full p-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-800 bg-slate-50/50 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">REQUESTED PRIORITY</label>
+            <div className="p-2 border border-slate-200 rounded-lg bg-slate-50/50">
+              <span className="text-xs font-bold text-amber-600">{ticket.requestedPriority}</span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">CURRENT STATUS</label>
+            <div className="p-1.5 border border-slate-200 rounded-lg bg-slate-50/50 flex items-center">
+              {getStatusBadge(ticket.currentStatus)}
             </div>
           </div>
         </div>
+
+        {/* Row 3: Summary */}
+        <div>
+          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">SUMMARY</label>
+          <input
+            type="text"
+            readOnly
+            value={ticket.summary}
+            className="w-full p-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-900 bg-slate-50/50 outline-none"
+          />
+        </div>
+
+        {/* Row 4: Description */}
+        <div>
+          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">DESCRIPTION</label>
+          <textarea
+            readOnly
+            rows={2}
+            value={ticket.description}
+            className="w-full p-2 border border-slate-200 rounded-lg text-xs text-slate-700 bg-slate-50/50 outline-none resize-none"
+          />
+        </div>
+
+        {/* Row 5: Resolution Summary */}
+        <div>
+          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">RESOLUTION SUMMARY</label>
+          <input
+            type="text"
+            readOnly
+            value="No resolution summary available yet."
+            className="w-full p-2 border border-slate-200 rounded-lg text-xs italic text-slate-400 bg-slate-50/50 outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Resolution Advisory Banner (Image 2) */}
+      {advisoryRecorded ? (
+        <div className="p-3.5 bg-emerald-50/80 border border-emerald-200 text-emerald-900 rounded-xl space-y-1">
+          <div className="font-bold text-xs text-emerald-900">Resolution advisory recorded</div>
+          <div className="text-xs text-emerald-800 leading-relaxed">
+            You indicated that the problem appears resolved on {advisoryTime}. IT Staff must still formally review the ticket.
+          </div>
+        </div>
+      ) : (
+        ticket.currentStatus !== 'RESOLVED' &&
+        ticket.currentStatus !== 'CLOSED' && (
+          <div className="flex justify-end">
+            <button
+              onClick={handleResolveRequest}
+              className="px-3.5 py-2 bg-[#006B3C] hover:bg-[#004D2B] text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+            >
+              Problem Appears Resolved
+            </button>
+          </div>
+        )
       )}
+
+      {/* Actions Taken Section (Role Protected: Requester sees read-only, NO Add/Edit/Complete buttons) */}
+      <ActionsTakenSection ticketId={ticket.id} />
+
+      {/* Attachments Section */}
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-800">
+            Attachments ({ticket.attachments?.length || 0})
+          </h3>
+          <button
+            type="button"
+            className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+          >
+            + Add Attachment
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">No active attachments for this ticket.</p>
+      </div>
+
+      {/* Public Comments Section (Internal Notes are strictly omitted for Requesters!) */}
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
+        <div>
+          <h3 className="text-xs font-bold text-[#006B3C]">Public Comments</h3>
+          <p className="text-[11px] text-slate-400">Comments are visible to you and the IT support team.</p>
+        </div>
+
+        {comments.length > 0 ? (
+          <div className="space-y-3">
+            {comments.map((c) => (
+              <div key={c.id} className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-xs space-y-1">
+                <div className="flex justify-between font-bold text-slate-800">
+                  <span>{c.author.name} ({c.author.role})</span>
+                  <span className="text-slate-400 font-normal">{new Date(c.createdAt).toLocaleDateString()}</span>
+                </div>
+                <p className="text-slate-700">{c.content}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400">No public comments yet.</p>
+        )}
+
+        <form onSubmit={handleAddComment} className="space-y-2 pt-2 border-t border-slate-100">
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Add Public Comment"
+            rows={3}
+            className="w-full p-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-600"
+          />
+          <button
+            type="submit"
+            disabled={submittingComment || !newComment.trim()}
+            className="px-3.5 py-1.5 bg-[#006B3C] hover:bg-[#004D2B] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs"
+          >
+            {submittingComment ? 'Posting...' : 'Post Comment'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

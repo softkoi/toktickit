@@ -6,6 +6,7 @@ The project is developed iteratively through multi-sprint laboratory milestones:
 - **Lab 1:** Foundation vertical slice (React + Express REST API + Prisma ORM + PostgreSQL).
 - **Lab 2:** Requester Ticketing MVP with complete ticket creation, dashboard filtering, attachment lifecycle management, and responsive design.
 - **Lab 3:** Enterprise-grade Authentication, Role-Based Access Control (RBAC), IT Staff Queue & Operations, Public Comments & Internal Notes, and Administrator User Management.
+- **Lab 4:** Actions Taken Tracking, Strict Ticket Workflow & Resolution Gate, Role-Based Dashboards (Requester, IT Staff, Admin), and Final Full-Stack Application Hardening.
 
 ---
 
@@ -33,7 +34,8 @@ toktickit/
 │   └── tests/                   # Unit & API Integration test suite
 ├── docs/
 │   ├── lab-02/                  # Lab 2 Specifications, Test plan, API & UI specs
-│   └── lab-03/                  # Lab 3 Specifications, Test plan, Reviewer & AI logs
+│   ├── lab-03/                  # Lab 3 Specifications, Test plan, Reviewer & AI logs
+│   └── lab-04/                  # Lab 4 Specifications, Test plan, Reviewer & AI logs
 └── package.json                 # Root scripts & configuration
 ```
 
@@ -114,6 +116,14 @@ npx playwright show-report
 
 ## Lab Deliverables & Documentation
 
+### Lab 4:
+- **Sprint 4 Engineering Specification** — Actions Taken schema, Strict Ticket Workflow & State Transitions, Resolution Gate (BR-01 to BR-05), and Role-Based Dashboards (`docs/lab-04/specification.md`)
+- **REST API Specification** — Actions Taken CRUD, status transition gates, and requester/staff dashboard metrics endpoints (`docs/lab-04/api-spec.md`)
+- **UI Specification** — Actions Taken timeline component, dynamic follow-up validation, and Role-Based Dashboards (`docs/lab-04/ui-spec.md`)
+- **Master Test Plan & Traceability** — 100% Acceptance Criteria traceability matrix covering 5 automated test layers (`docs/lab-04/tests.md`)
+- **Peer Reviewer Record** — PR review comments, change requests, and resolution logs (`docs/lab-04/reviewer.md`)
+- **AI-Use Record** — Prompt engineering log and development reflections (`docs/lab-04/ai-use.md`)
+
 ### Lab 3:
 - **Sprint 3 Specification** — Role-Based Authorization, IT Staff Queue & Operational Workflow, Admin User Management (`docs/lab-03/specification.md`)
 - **REST API Specification** — Authentication cookies, IT Queue & Comment/Note endpoints (`docs/lab-03/api-spec.md`)
@@ -128,6 +138,15 @@ npx playwright show-report
 - **REST API Specification** — Endpoint contracts, request/response formats, error codes (`docs/lab-02/api-spec.md`)
 - **UI Specification** — Zen Green design system, layout rules, screenshot requirements (`docs/lab-02/ui-spec.md`)
 - **Test Plan & Verification Records** — 48 automated test cases with 100% Pass status (`docs/lab-02/tests.md`)
+
+---
+
+## Lab 4 Acceptance Summary
+
+- **Actions Taken Tracking:** Parent-child relation under Ticket recording Action Date/Time, Description, Result, automated Performed By attribution, Follow-Up Required toggle with mandatory note validation, and attachment references.
+- **Strict Ticket Workflow & Resolution Gate:** Formal state machine enforcement (`NEW` -> `OPEN` -> `IN_PROGRESS` -> `RESOLVED` -> `CLOSED`), Requester advisory resolution state without direct status mutation, Resolution Gate blocking `RESOLVED` without at least one recorded Action Taken (`BR-01`), and optimistic concurrency protection against stale overwrites (`409 Conflict`).
+- **Role-Based Dashboards:** Isolated operational summary endpoints and responsive dashboards for Requesters (open/waiting ticket cards, recent submissions, quick logging) and IT Staff/Admins (5-column queue metrics, priority badges, recent service tickets with drill-downs, and system user counts).
+- **Application Hardening & Zen Green Polish:** Comprehensive regression test suite across Labs 1-4, responsive drawer layout, error boundaries, accessible color-coded priority badges, and robust error state fallbacks.
 
 ---
 

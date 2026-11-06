@@ -10,10 +10,10 @@ describe('API Test: PATCH /api/attachments/:id/remove Soft Removal (TEST-020 / T
   let attachmentId: number;
 
   beforeAll(async () => {
-    const user = await prisma.requesterUser.upsert({
+    const user = await prisma.user.upsert({
       where: { email: 'removeUser@example.com' },
       update: { isActive: true },
-      create: { id: 921, name: 'Remove User', email: 'removeUser@example.com', isActive: true },
+      create: { name: 'Remove User', email: 'removeUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     userId = user.id;
 

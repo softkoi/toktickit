@@ -10,10 +10,10 @@ describe('API Test: Attachment Soft Removal Validation (TEST-021 / BR-04 / AC-13
   let attachmentId: number;
 
   beforeAll(async () => {
-    const user = await prisma.requesterUser.upsert({
+    const user = await prisma.user.upsert({
       where: { email: 'removeValUser@example.com' },
       update: { isActive: true },
-      create: { id: 922, name: 'Remove Val User', email: 'removeValUser@example.com', isActive: true },
+      create: { name: 'Remove Val User', email: 'removeValUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     userId = user.id;
 

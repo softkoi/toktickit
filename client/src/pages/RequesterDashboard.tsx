@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { FileText, Clock, CheckCircle2, AlertCircle, PlusCircle, ArrowRight, RefreshCw, Folder } from 'lucide-react';
 
 interface DashboardMetrics {
   totalOpenTickets: number;
@@ -17,6 +16,7 @@ interface RecentTicketItem {
   status: string;
   currentStatus: string;
   requestedPriority: string;
+  itPriority?: string;
   updatedAt: string;
   category?: { id: number; name: string };
 }
@@ -25,6 +25,48 @@ interface RequesterDashboardProps {
   onNavigateToCreateTicket: () => void;
   onNavigateToMyTickets: (statusFilter?: string) => void;
   onSelectTicket: (ticketId: number) => void;
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  NEW: 'NEW',
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN PROGRESS',
+  WAITING_FOR_REQUESTER: 'WAITING FOR REQUESTER',
+  RESOLVED: 'RESOLVED',
+  CLOSED: 'CLOSED',
+  REOPENED: 'REOPENED',
+  CANCELLED: 'CANCELLED',
+};
+
+const STATUS_COLOR: Record<string, React.CSSProperties> = {
+  NEW: { background: '#e0f2fe', color: '#0369a1' },
+  OPEN: { background: '#fef3c7', color: '#92400e' },
+  IN_PROGRESS: { background: '#f3e8ff', color: '#6b21a8' },
+  WAITING_FOR_REQUESTER: { background: '#ffedd5', color: '#9a3412' },
+  RESOLVED: { background: '#dcfce7', color: '#166534' },
+  CLOSED: { background: '#f1f5f9', color: '#475569' },
+  REOPENED: { background: '#fce7f3', color: '#9d174d' },
+  CANCELLED: { background: '#f1f5f9', color: '#6b7280' },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const style = STATUS_COLOR[status] || { background: '#f1f5f9', color: '#475569' };
+  return (
+    <span
+      style={{
+        ...style,
+        fontWeight: 700,
+        fontSize: 10,
+        padding: '2px 7px',
+        borderRadius: 4,
+        letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {STATUS_LABEL[status] || status.replace(/_/g, ' ')}
+    </span>
+  );
 }
 
 export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
@@ -44,15 +86,14 @@ export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
     try {
       const res = await fetch('/api/dashboard/requester', { credentials: 'include' });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error?.message || 'Failed to load dashboard metrics');
+        setError('Dashboard is unavailable. Please try again.');
         return;
       }
       const data = await res.json();
       setMetrics(data.metrics);
       setRecentTickets(data.recentTickets || []);
     } catch {
-      setError('Network error loading dashboard');
+      setError('Dashboard is unavailable. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -62,235 +103,354 @@ export const RequesterDashboard: React.FC<RequesterDashboardProps> = ({
     fetchDashboardData();
   }, []);
 
-  const getStatusBadgeStyle = (status: string) => {
-    switch (status) {
-      case 'NEW':
-        return { bg: '#e0f2fe', color: '#0369a1', border: '#bae6fd' };
-      case 'OPEN':
-        return { bg: '#fef3c7', color: '#92400e', border: '#fde68a' };
-      case 'IN_PROGRESS':
-        return { bg: '#f3e8ff', color: '#6b21a8', border: '#e9d5ff' };
-      case 'WAITING_FOR_REQUESTER':
-        return { bg: '#ffedd5', color: '#9a3412', border: '#fed7aa' };
-      case 'RESOLVED':
-        return { bg: '#dcfce7', color: '#166534', border: '#bbf7d0' };
-      case 'CLOSED':
-        return { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' };
-      default:
-        return { bg: '#f8f9fa', color: '#495057', border: '#dee2e6' };
-    }
-  };
+  const openCount = metrics ? metrics.totalOpenTickets : 0;
+  const waitingCount = metrics?.waitingForRequesterTickets ?? 0;
+  const recentlyUpdatedCount = recentTickets.length;
+  const resolvedCount = metrics?.resolvedTickets ?? 0;
+
+  const needsAttention = recentTickets.filter((t) =>
+    ['IN_PROGRESS', 'WAITING_FOR_REQUESTER', 'REOPENED', 'OPEN', 'NEW'].includes(
+      t.currentStatus || t.status
+    )
+  );
+  const recentlyResolved = recentTickets.filter((t) =>
+    ['RESOLVED', 'CLOSED'].includes(t.currentStatus || t.status)
+  );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8" data-testid="requester-dashboard">
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Welcome back, <span className="text-emerald-800">{user?.name || 'Requester'}</span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Track and monitor the status of your service requests and recent updates.
-          </p>
-        </div>
-        <button
-          onClick={fetchDashboardData}
-          disabled={isLoading}
-          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors w-fit"
-        >
-          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-          Refresh
-        </button>
-      </div>
-
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-800 text-sm rounded flex items-center gap-2">
-          <AlertCircle size={16} />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Top Metric Cards Grid (4 Columns) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {/* Card 1: My Open Tickets */}
+    <div data-testid="requester-dashboard" style={{ minHeight: '100vh', background: '#f5f7f6' }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 16px 48px' }}>
+        
+        {/* Header */}
         <div
-          data-testid="metric-open-tickets"
-          onClick={() => onNavigateToMyTickets('OPEN')}
-          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-emerald-500 hover:shadow-md cursor-pointer transition-all"
+          className="requester-dash-header"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 16,
+            marginBottom: 20,
+            flexWrap: 'wrap',
+          }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">My Open Tickets</span>
-            <Folder size={18} className="text-emerald-700" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900">
-            {isLoading ? '...' : metrics?.totalOpenTickets ?? 0}
-          </div>
-          <span className="text-[11px] text-emerald-700 font-medium inline-flex items-center gap-1 mt-2">
-            View active <ArrowRight size={11} />
-          </span>
-        </div>
-
-        {/* Card 2: In Progress */}
-        <div
-          data-testid="metric-in-progress"
-          onClick={() => onNavigateToMyTickets('IN_PROGRESS')}
-          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-purple-400 hover:shadow-md cursor-pointer transition-all"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">In Progress</span>
-            <Clock size={18} className="text-purple-600" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900">
-            {isLoading ? '...' : metrics?.inProgressTickets ?? 0}
-          </div>
-          <span className="text-[11px] text-purple-700 font-medium inline-flex items-center gap-1 mt-2">
-            View in progress <ArrowRight size={11} />
-          </span>
-        </div>
-
-        {/* Card 3: Resolved */}
-        <div
-          data-testid="metric-resolved"
-          onClick={() => onNavigateToMyTickets('RESOLVED')}
-          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-emerald-400 hover:shadow-md cursor-pointer transition-all"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Resolved</span>
-            <CheckCircle2 size={18} className="text-emerald-600" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900">
-            {isLoading ? '...' : metrics?.resolvedTickets ?? 0}
-          </div>
-          <span className="text-[11px] text-emerald-700 font-medium inline-flex items-center gap-1 mt-2">
-            View resolved <ArrowRight size={11} />
-          </span>
-        </div>
-
-        {/* Card 4: Closed */}
-        <div
-          data-testid="metric-closed"
-          onClick={() => onNavigateToMyTickets('CLOSED')}
-          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-slate-400 hover:shadow-md cursor-pointer transition-all"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Closed</span>
-            <FileText size={18} className="text-slate-500" />
-          </div>
-          <div className="text-3xl font-extrabold text-slate-900">
-            {isLoading ? '...' : metrics?.closedTickets ?? 0}
-          </div>
-          <span className="text-[11px] text-slate-600 font-medium inline-flex items-center gap-1 mt-2">
-            View history <ArrowRight size={11} />
-          </span>
-        </div>
-      </div>
-
-      {/* Bottom Split: Recent Tickets (70%) & Quick Actions (30%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Recent Tickets (2 Columns wide on Desktop) */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-              <Clock size={16} className="text-emerald-700" />
-              My Recent Tickets
-            </h2>
-            <button
-              onClick={() => onNavigateToMyTickets()}
-              className="text-xs text-emerald-800 hover:underline font-semibold"
-            >
-              View all
-            </button>
-          </div>
-
-          {isLoading ? (
-            <p className="text-xs text-slate-400 py-8 text-center">Loading recent requests...</p>
-          ) : recentTickets.length === 0 ? (
-            <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200" data-testid="dashboard-empty-state">
-              <Folder size={32} className="mx-auto text-slate-400 mb-2" />
-              <p className="text-sm font-semibold text-slate-700">No tickets found</p>
-              <p className="text-xs text-slate-400 mt-1">Submit your first service ticket to get started.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentTickets.map((t) => {
-                const badge = getStatusBadgeStyle(t.currentStatus || t.status);
-                return (
-                  <div
-                    key={t.id}
-                    onClick={() => onSelectTicket(t.id)}
-                    className="p-4 bg-slate-50/70 hover:bg-emerald-50/40 border border-slate-200 hover:border-emerald-300 rounded-xl cursor-pointer transition-all flex items-center justify-between gap-4"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-xs font-bold text-emerald-900 bg-emerald-100/60 px-2 py-0.5 rounded">
-                          {t.ticketNumber}
-                        </span>
-                        {t.category && (
-                          <span className="text-[11px] text-slate-500 font-medium">
-                            • {t.category.name}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-sm font-semibold text-slate-800 line-clamp-1">{t.summary}</h3>
-                      <span className="text-[11px] text-slate-400 mt-1 block">
-                        Updated: {new Date(t.updatedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <span
-                      style={{ backgroundColor: badge.bg, color: badge.color, borderColor: badge.border }}
-                      className="px-2.5 py-1 text-xs font-bold rounded-full border shrink-0 uppercase tracking-wider"
-                    >
-                      {(t.currentStatus || t.status).replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Right: Quick Actions Panel */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-6">
           <div>
-            <h2 className="text-base font-bold text-slate-800 mb-2">Quick Actions</h2>
-            <p className="text-xs text-slate-500 mb-6">Need help or want to inspect your past requests?</p>
-
-            <div className="space-y-3">
-              <button
-                onClick={onNavigateToCreateTicket}
-                data-testid="quick-action-create-ticket"
-                className="w-full flex items-center justify-between p-3.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <PlusCircle size={16} />
-                  Submit New Request
-                </span>
-                <ArrowRight size={14} />
-              </button>
-
-              <button
-                onClick={() => onNavigateToMyTickets()}
-                data-testid="quick-action-view-tickets"
-                className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <FileText size={16} className="text-slate-600" />
-                  View All My Tickets
-                </span>
-                <ArrowRight size={14} />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-100 text-xs text-emerald-900 space-y-1">
-            <span className="font-bold block">Need immediate assistance?</span>
-            <p className="text-[11px] text-emerald-800 leading-relaxed">
-              For system-wide outages or critical IT emergencies, please contact the IT Helpdesk hotline.
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a2d23', marginBottom: 3 }}>
+              My Dashboard
+            </h1>
+            <p style={{ fontSize: 13, color: '#789082' }}>
+              Only your support tickets appear here.
             </p>
           </div>
+          <button
+            onClick={onNavigateToCreateTicket}
+            data-testid="quick-action-create-ticket"
+            className="create-ticket-top-btn"
+            style={{
+              background: '#006B3C',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              padding: '8px 18px',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#004D2B')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#006B3C')}
+          >
+            Create Ticket
+          </button>
         </div>
+
+        {/* Loading */}
+        {isLoading && (
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 10,
+              border: '1px solid #e2ede6',
+              padding: '24px 20px',
+              color: '#64748b',
+              fontSize: 13,
+              marginBottom: 20,
+            }}
+          >
+            Loading dashboard...
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div
+            style={{
+              marginBottom: 20,
+              padding: '18px 22px',
+              background: '#fee2e2',
+              border: '1px solid #fecaca',
+              borderRadius: 10,
+              color: '#991b1b',
+              fontSize: 13,
+            }}
+          >
+            <div style={{ marginBottom: 12 }}>{error}</div>
+            <button
+              onClick={fetchDashboardData}
+              style={{
+                background: '#006B3C',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                padding: '6px 16px',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              Retry dashboard
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !error && (
+          <>
+            {/* 4 Metric Cards */}
+            <div
+              className="requester-metric-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: 14,
+                marginBottom: 22,
+              }}
+            >
+              <MetricCard
+                testId="metric-open-tickets"
+                label="Open Tickets"
+                value={openCount}
+                linkLabel="View matching tickets →"
+                onClick={() => onNavigateToMyTickets('OPEN')}
+              />
+              <MetricCard
+                testId="metric-waiting"
+                label="Waiting for You"
+                value={waitingCount}
+                linkLabel="View matching tickets →"
+                onClick={() => onNavigateToMyTickets('WAITING_FOR_REQUESTER')}
+              />
+              <MetricCard
+                testId="metric-recently-updated"
+                label="Recently Updated"
+                value={recentlyUpdatedCount}
+                linkLabel="View matching tickets →"
+                onClick={() => onNavigateToMyTickets()}
+              />
+              <MetricCard
+                testId="metric-resolved"
+                label="Recently Resolved"
+                value={resolvedCount}
+                linkLabel="View matching tickets →"
+                onClick={() => onNavigateToMyTickets('RESOLVED')}
+              />
+            </div>
+
+            {/* Bottom 2-Column Grid */}
+            <div
+              className="requester-bottom-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 14,
+              }}
+            >
+              {/* Needs attention */}
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: 10,
+                  border: '1px solid #e2ede6',
+                  padding: '18px 18px 14px',
+                }}
+              >
+                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#1a2d23', marginBottom: 14 }}>
+                  Needs attention / recently updated
+                </h2>
+                {needsAttention.length === 0 ? (
+                  <p style={{ fontSize: 12, color: '#789082' }}>No matching tickets right now.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {needsAttention.slice(0, 5).map((t) => (
+                      <RequesterTicketRow
+                        key={t.id}
+                        ticket={t}
+                        onClick={() => onSelectTicket(t.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Recently resolved */}
+              <div
+                style={{
+                  background: '#fff',
+                  borderRadius: 10,
+                  border: '1px solid #e2ede6',
+                  padding: '18px 18px 14px',
+                }}
+              >
+                <h2 style={{ fontSize: 13, fontWeight: 700, color: '#1a2d23', marginBottom: 14 }}>
+                  Recently resolved
+                </h2>
+                {recentlyResolved.length === 0 ? (
+                  <p style={{ fontSize: 12, color: '#789082' }}>No matching tickets right now.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {recentlyResolved.slice(0, 5).map((t) => (
+                      <RequesterTicketRow
+                        key={t.id}
+                        ticket={t}
+                        onClick={() => onSelectTicket(t.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
+
+      {/* Responsive media queries */}
+      <style>{`
+        @media (max-width: 767px) {
+          .requester-dash-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .create-ticket-top-btn {
+            width: fit-content !important;
+          }
+          .requester-metric-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .requester-bottom-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+          .requester-metric-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };
+
+function MetricCard({
+  label,
+  value,
+  linkLabel,
+  onClick,
+  testId,
+}: {
+  label: string;
+  value: number;
+  linkLabel: string;
+  onClick: () => void;
+  testId?: string;
+}) {
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <div
+      data-testid={testId}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: '#fff',
+        borderRadius: 10,
+        border: `1px solid ${hovered ? '#006B3C' : '#e2ede6'}`,
+        padding: '16px 18px 14px',
+        cursor: 'pointer',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+        boxShadow: hovered ? '0 2px 8px rgba(0,107,60,0.08)' : '0 1px 2px rgba(0,0,0,0.03)',
+      }}
+    >
+      <div style={{ fontSize: 11, fontWeight: 600, color: '#789082', marginBottom: 8 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 32, fontWeight: 800, color: '#1a2d23', lineHeight: 1, marginBottom: 10 }}>
+        {value}
+      </div>
+      <span style={{ fontSize: 11, color: '#006B3C', fontWeight: 600 }}>
+        {linkLabel}
+      </span>
+    </div>
+  );
+}
+
+function RequesterTicketRow({
+  ticket,
+  onClick,
+}: {
+  ticket: RecentTicketItem;
+  onClick: () => void;
+}) {
+  const status = ticket.currentStatus || ticket.status;
+  const priority = ticket.itPriority || ticket.requestedPriority || 'MEDIUM';
+  const [hovered, setHovered] = React.useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        cursor: 'pointer',
+        borderRadius: 6,
+        padding: '8px 10px',
+        background: hovered ? '#f4f9f6' : 'transparent',
+        transition: 'background 0.12s',
+      }}
+    >
+      <a
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          onClick();
+        }}
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          color: '#006B3C',
+          textDecoration: hovered ? 'underline' : 'none',
+          display: 'block',
+          marginBottom: 3,
+        }}
+      >
+        {ticket.ticketNumber}: {ticket.summary}
+      </a>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 11, color: '#789082' }}>
+        <StatusBadge status={status} />
+        <span>· IT priority <strong style={{ color: '#1a2d23' }}>{priority}</strong></span>
+        <span>
+          · Updated{' '}
+          {(() => {
+            try {
+              const d = new Date(ticket.updatedAt);
+              const day = d.getDate();
+              const month = d.getMonth() + 1;
+              const year = d.getFullYear() + 543;
+              return `${day}/${month}/${year}`;
+            } catch {
+              return '';
+            }
+          })()}
+        </span>
+      </div>
+    </div>
+  );
+}

@@ -13,17 +13,17 @@ describe('API Test: Attachment Validation & Ownership (TEST-008 / TEST-009 / AC-
   let ticketId: number;
 
   beforeAll(async () => {
-    const user1 = await prisma.requesterUser.upsert({
+    const user1 = await prisma.user.upsert({
       where: { email: 'valUser1@example.com' },
       update: { isActive: true },
-      create: { id: 996, name: 'Validation User 1', email: 'valUser1@example.com', isActive: true },
+      create: { name: 'Validation User 1', email: 'valUser1@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     requesterId = user1.id;
 
-    const user2 = await prisma.requesterUser.upsert({
+    const user2 = await prisma.user.upsert({
       where: { email: 'valUser2@example.com' },
       update: { isActive: true },
-      create: { id: 995, name: 'Validation User 2', email: 'valUser2@example.com', isActive: true },
+      create: { name: 'Validation User 2', email: 'valUser2@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     otherRequesterId = user2.id;
 

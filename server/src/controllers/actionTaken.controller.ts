@@ -138,17 +138,18 @@ export async function createActionTaken(req: AuthRequest, res: Response) {
  */
 export async function updateActionTaken(req: AuthRequest, res: Response) {
   try {
+    // Authorization check: Only IT Staff and Admin can update actions taken
+    // (Checked FIRST before parsing params so Requesters always get 403)
+    if (req.user?.role === 'REQUESTER') {
+      return res.status(403).json({
+        error: { code: 'FORBIDDEN', message: 'Requesters are not permitted to update actions taken' }
+      });
+    }
+
     const actionId = parseInt(req.params.actionId, 10);
     if (isNaN(actionId)) {
       return res.status(400).json({
         error: { code: 'INVALID_INPUT', message: 'Invalid action ID' }
-      });
-    }
-
-    // Authorization check: Only IT Staff and Admin can update actions taken
-    if (req.user?.role === 'REQUESTER') {
-      return res.status(403).json({
-        error: { code: 'FORBIDDEN', message: 'Requesters are not permitted to update actions taken' }
       });
     }
 

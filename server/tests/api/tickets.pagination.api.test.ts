@@ -11,10 +11,10 @@ describe('API Test: GET /api/tickets Pagination & Metadata (TEST-015 / AC-10)', 
   let systemId: number;
 
   beforeAll(async () => {
-    const user = await prisma.requesterUser.upsert({
+    const user = await prisma.user.upsert({
       where: { email: 'paginationUser@example.com' },
       update: { isActive: true },
-      create: { id: 916, name: 'Pagination User', email: 'paginationUser@example.com', isActive: true },
+      create: { name: 'Pagination User', email: 'paginationUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     userId = user.id;
 

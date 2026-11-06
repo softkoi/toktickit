@@ -18,6 +18,8 @@ export const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [viewingTicketDetail, setViewingTicketDetail] = useState(false);
+  const [queueFilters, setQueueFilters] = useState<{ status?: string; assignment?: string; priority?: string }>({});
+  const [requesterTicketFilter, setRequesterTicketFilter] = useState<string | null>(null);
 
   // Default initial page to dashboard
   useEffect(() => {
@@ -49,11 +51,34 @@ export const AppContent: React.FC = () => {
     setSelectedTicketId(null);
   };
 
+  const handleNavigateToQueue = (filter?: { status?: string; assignment?: string; priority?: string } | string) => {
+    if (typeof filter === 'string') {
+      if (filter === 'unassigned' || filter === 'my-assigned') {
+        setQueueFilters({ assignment: filter });
+      } else if (['LOW', 'MEDIUM', 'HIGH', 'URGENT'].includes(filter)) {
+        setQueueFilters({ priority: filter });
+      } else {
+        setQueueFilters({ status: filter });
+      }
+    } else if (filter) {
+      setQueueFilters(filter);
+    } else {
+      setQueueFilters({});
+    }
+    setActiveTab('staff-queue');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
       <Navbar
         activeTab={activeTab}
         onNavigate={(tab) => {
+          if (tab === 'my-tickets') {
+            setRequesterTicketFilter(null);
+          }
+          if (tab === 'staff-queue') {
+            setQueueFilters({});
+          }
           setActiveTab(tab);
           setViewingTicketDetail(false);
         }}
@@ -85,12 +110,15 @@ export const AppContent: React.FC = () => {
               user.role === 'REQUESTER' ? (
                 <RequesterDashboard
                   onNavigateToCreateTicket={() => setActiveTab('create-ticket')}
-                  onNavigateToMyTickets={() => setActiveTab('my-tickets')}
+                  onNavigateToMyTickets={(statusFilter?: string) => {
+                    setRequesterTicketFilter(statusFilter || 'open');
+                    setActiveTab('my-tickets');
+                  }}
                   onSelectTicket={handleSelectTicket}
                 />
               ) : (
                 <StaffDashboard
-                  onNavigateToQueue={() => setActiveTab('staff-queue')}
+                  onNavigateToQueue={handleNavigateToQueue}
                   onNavigateToCreateTicket={() => setActiveTab('create-ticket')}
                   onSelectTicket={handleSelectTicket}
                 />
@@ -99,6 +127,8 @@ export const AppContent: React.FC = () => {
 
             {activeTab === 'my-tickets' && (
               <MyTicketsPage
+                key={requesterTicketFilter || 'all'}
+                initialFilter={requesterTicketFilter}
                 onNavigateToCreateTicket={() => setActiveTab('create-ticket')}
                 onSelectTicket={handleSelectTicket}
               />
@@ -119,6 +149,8 @@ export const AppContent: React.FC = () => {
 
             {activeTab === 'staff-queue' && (
               <StaffQueuePage
+                key={JSON.stringify(queueFilters)}
+                initialFilters={queueFilters}
                 onSelectTicket={handleSelectTicket}
               />
             )}

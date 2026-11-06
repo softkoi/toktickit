@@ -193,7 +193,11 @@ export async function getTickets(req: AuthRequest, res: Response) {
     }
 
     if (status && typeof status === 'string') {
-      whereClause.currentStatus = status;
+      if (status.toLowerCase() === 'open' || status.toUpperCase() === 'OPEN_ACTIVE') {
+        whereClause.currentStatus = { in: ['NEW', 'OPEN', 'IN_PROGRESS', 'WAITING_FOR_REQUESTER', 'REOPENED'] };
+      } else {
+        whereClause.currentStatus = status;
+      }
     }
 
     if (search && typeof search === 'string' && search.trim() !== '') {
@@ -224,6 +228,12 @@ export async function getTickets(req: AuthRequest, res: Response) {
           createdAt: true,
           updatedAt: true,
           category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          relatedSystem: {
             select: {
               id: true,
               name: true,

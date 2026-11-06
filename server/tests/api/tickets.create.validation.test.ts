@@ -9,10 +9,10 @@ describe('API Integration Test: POST /api/tickets Validation Failures (TEST-005 
   let requesterId = 1;
 
   beforeAll(async () => {
-    const reqUser = await prisma.requesterUser.upsert({
+    const reqUser = await prisma.user.upsert({
       where: { email: 'validation.tester@example.com' },
       update: { isActive: true },
-      create: { name: 'Validation Tester', email: 'validation.tester@example.com', isActive: true },
+      create: { name: 'Validation Tester', email: 'validation.tester@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     requesterId = reqUser.id;
   });

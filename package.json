@@ -1,4 +1,9 @@
 {
+  "name": "toktickit-root",
+  "version": "1.0.0",
+  "scripts": {
+    "test:e2e": "playwright test e2e/lab-03 e2e/lab-04"
+  },
   "devDependencies": {
     "@playwright/test": "^1.63.0"
   }

@@ -11,10 +11,10 @@ describe('API Test: GET /api/tickets Keyword Search (TEST-013 / AC-08)', () => {
   let systemId: number;
 
   beforeAll(async () => {
-    const user = await prisma.requesterUser.upsert({
+    const user = await prisma.user.upsert({
       where: { email: 'searchUser@example.com' },
       update: { isActive: true },
-      create: { id: 913, name: 'Search Test User', email: 'searchUser@example.com', isActive: true },
+      create: { name: 'Search Test User', email: 'searchUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     userId = user.id;
 

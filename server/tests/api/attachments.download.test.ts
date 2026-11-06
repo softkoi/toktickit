@@ -15,17 +15,17 @@ describe('API Test: GET /api/attachments/:id/download (TEST-019 / TEST-022 / AC-
   let sampleFilePath: string;
 
   beforeAll(async () => {
-    const user = await prisma.requesterUser.upsert({
+    const user = await prisma.user.upsert({
       where: { email: 'dlUser@example.com' },
       update: { isActive: true },
-      create: { id: 919, name: 'Download User', email: 'dlUser@example.com', isActive: true },
+      create: { name: 'Download User', email: 'dlUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     userId = user.id;
 
-    const otherUser = await prisma.requesterUser.upsert({
+    const otherUser = await prisma.user.upsert({
       where: { email: 'otherDlUser@example.com' },
       update: { isActive: true },
-      create: { id: 920, name: 'Other Download User', email: 'otherDlUser@example.com', isActive: true },
+      create: { name: 'Other Download User', email: 'otherDlUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     otherUserId = otherUser.id;
 

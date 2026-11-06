@@ -11,17 +11,17 @@ describe('API Test: GET /api/tickets/:id Ticket Detail View (TEST-017 / AC-11)',
   let ticketId: number;
 
   beforeAll(async () => {
-    const user = await prisma.requesterUser.upsert({
+    const user = await prisma.user.upsert({
       where: { email: 'detailUser@example.com' },
       update: { isActive: true },
-      create: { id: 917, name: 'Detail User', email: 'detailUser@example.com', isActive: true },
+      create: { name: 'Detail User', email: 'detailUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     userId = user.id;
 
-    const otherUser = await prisma.requesterUser.upsert({
+    const otherUser = await prisma.user.upsert({
       where: { email: 'otherDetailUser@example.com' },
       update: { isActive: true },
-      create: { id: 918, name: 'Other Detail User', email: 'otherDetailUser@example.com', isActive: true },
+      create: { name: 'Other Detail User', email: 'otherDetailUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     otherUserId = otherUser.id;
 

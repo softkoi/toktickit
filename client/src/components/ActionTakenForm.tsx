@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ActionTakenItem, CreateActionTakenDto, UpdateActionTakenDto } from '../types/actionTaken.types';
-import { PlusCircle, CheckCircle, X, AlertCircle } from 'lucide-react';
+import {
+  ActionTakenItem,
+  CreateActionTakenDto,
+  UpdateActionTakenDto,
+  ActionStatus,
+  parseActionNotes,
+  formatActionNotes,
+} from '../types/actionTaken.types';
 
 export interface ActionTakenFormProps {
   initialData?: ActionTakenItem | null;
   onSubmit: (data: CreateActionTakenDto | UpdateActionTakenDto) => Promise<void>;
   onCancel: () => void;
+  onReload?: () => void;
   isSubmitting?: boolean;
 }
 
@@ -13,326 +20,378 @@ export const ActionTakenForm: React.FC<ActionTakenFormProps> = ({
   initialData,
   onSubmit,
   onCancel,
+  onReload,
   isSubmitting = false,
 }) => {
   const isEditing = Boolean(initialData);
 
+  const parsed = parseActionNotes(initialData?.attachmentNotes || null);
+
+  const nowFormatted = () => {
+    const d = new Date();
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${mins}`;
+  };
+
+  const [actionDateTime, setActionDateTime] = useState(
+    parsed.actionDateTime || (initialData ? nowFormatted() : nowFormatted())
+  );
   const [description, setDescription] = useState(initialData?.description || '');
-  const [result, setResult] = useState(initialData?.result || '');
+  const [result, setResult] = useState(
+    initialData?.result && initialData.result !== 'No result recorded yet.' ? initialData.result : ''
+  );
+  const [assignee, setAssignee] = useState(parsed.assignee || 'Mary Support (IT STAFF)');
   const [followUpRequired, setFollowUpRequired] = useState(initialData?.followUpRequired || false);
   const [followUpNote, setFollowUpNote] = useState(initialData?.followUpNote || '');
-  const [attachmentNotes, setAttachmentNotes] = useState(initialData?.attachmentNotes || '');
+  const [attachmentNotes, setAttachmentNotes] = useState(parsed.cleanNotes || '');
 
-  const [errors, setErrors] = useState<{
-    description?: string;
-    result?: string;
-    followUpNote?: string;
-    general?: string;
-  }>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialData) {
+      const p = parseActionNotes(initialData.attachmentNotes || null);
       setDescription(initialData.description || '');
-      setResult(initialData.result || '');
+      setResult(initialData.result && initialData.result !== 'No result recorded yet.' ? initialData.result : '');
       setFollowUpRequired(initialData.followUpRequired || false);
       setFollowUpNote(initialData.followUpNote || '');
-      setAttachmentNotes(initialData.attachmentNotes || '');
+      setAttachmentNotes(p.cleanNotes || '');
+      setAssignee(p.assignee || 'Mary Support (IT STAFF)');
+      setActionDateTime(p.actionDateTime || nowFormatted());
     }
   }, [initialData]);
 
-  const validate = (): boolean => {
-    const newErrors: typeof errors = {};
-
-    if (!description.trim() || description.trim().length < 3) {
-      newErrors.description = 'Action description is required (min. 3 characters)';
-    }
-
-    if (!result.trim() || result.trim().length < 3) {
-      newErrors.result = 'Result is required (min. 3 characters)';
-    }
-
-    // BR-04 & AC-05: When followUpRequired is true, followUpNote is mandatory (min. 3 chars)
-    if (followUpRequired && (!followUpNote.trim() || followUpNote.trim().length < 3)) {
-      newErrors.followUpNote = 'Follow-up note is required (min. 3 characters) when follow-up is requested';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || isSubmitting) return;
+
+    // Validation 1: Action description
+    if (!description.trim()) {
+      setErrorMessage('Action description is required.');
+      return;
+    }
+
+    // Validation 2: Follow-up note when enabled
+    if (followUpRequired && !followUpNote.trim()) {
+      setErrorMessage('Follow-up note is required when follow-up is enabled.');
+      return;
+    }
+
+    setErrorMessage(null);
+
+    // Determine status
+    let status: ActionStatus = parsed.status || 'PLANNED';
+    if (result.trim()) {
+      status = 'COMPLETED';
+    } else if (status === 'COMPLETED' && !result.trim()) {
+      status = 'PLANNED';
+    }
+
+    const formattedNotes = formatActionNotes(attachmentNotes, status, assignee, actionDateTime);
+    const finalResult = result.trim() ? result.trim() : 'No result recorded yet.';
 
     try {
       await onSubmit({
         description: description.trim(),
-        result: result.trim(),
+        result: finalResult,
         followUpRequired,
         followUpNote: followUpRequired ? followUpNote.trim() : null,
-        attachmentNotes: attachmentNotes.trim() || null,
+        attachmentNotes: formattedNotes,
+        status,
+        assigneeName: assignee,
+        actionDateTime,
       });
     } catch (err: any) {
-      setErrors((prev) => ({
-        ...prev,
-        general: err?.message || 'Failed to save action taken',
-      }));
+      setErrorMessage(err?.message || 'Failed to save action taken.');
+    }
+  };
+
+  const handleReload = () => {
+    setErrorMessage(null);
+    if (onReload) {
+      onReload();
     }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      data-testid="action-taken-form"
+    <div
       style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #dee2e6',
-        borderRadius: '8px',
-        padding: '20px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
+        background: '#fff',
+        borderRadius: 10,
+        border: '1px solid #c7e3d2',
+        padding: '24px 22px',
+        marginBottom: 20,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px',
-          borderBottom: '1px solid #e9ecef',
-          paddingBottom: '12px',
-        }}
-      >
-        <h4 style={{ margin: 0, color: '#0f5132', fontSize: '1.05rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {isEditing ? <CheckCircle size={18} /> : <PlusCircle size={18} />}
-          {isEditing ? 'Edit Action Taken' : 'Record New Action Taken'}
-        </h4>
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{ background: 'none', border: 'none', color: '#6c757d', cursor: 'pointer', padding: '4px' }}
-          aria-label="Close form"
-        >
-          <X size={18} />
-        </button>
-      </div>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Form Title */}
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: '#006B3C', margin: 0 }}>
+          {isEditing ? 'Edit Action Taken' : 'Add Action Taken'}
+        </h2>
 
-      {errors.general && (
-        <div
-          data-testid="form-general-error"
-          style={{
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-            padding: '10px 12px',
-            borderRadius: '6px',
-            marginBottom: '16px',
-            fontSize: '0.88rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <AlertCircle size={16} />
-          <span>{errors.general}</span>
-        </div>
-      )}
-
-      {/* Description */}
-      <div style={{ marginBottom: '14px' }}>
-        <label
-          htmlFor="action-description"
-          style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', fontWeight: 600, color: '#212529' }}
-        >
-          Action Description <span style={{ color: '#dc3545' }}>*</span>{' '}
-          <span style={{ fontSize: '0.78rem', color: '#6c757d', fontWeight: 400 }}>(min. 3 characters)</span>
-        </label>
-        <textarea
-          id="action-description"
-          name="description"
-          data-testid="input-action-description"
-          rows={3}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe what work was performed (e.g. Cleared cache, updated driver...)"
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '6px',
-            border: `1px solid ${errors.description ? '#dc3545' : '#ced4da'}`,
-            fontSize: '0.9rem',
-            outline: 'none',
-            boxSizing: 'border-box',
-          }}
-        />
-        {errors.description && (
-          <p data-testid="error-description" style={{ margin: '4px 0 0', color: '#dc3545', fontSize: '0.8rem' }}>
-            {errors.description}
-          </p>
-        )}
-      </div>
-
-      {/* Result */}
-      <div style={{ marginBottom: '14px' }}>
-        <label
-          htmlFor="action-result"
-          style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', fontWeight: 600, color: '#212529' }}
-        >
-          Result / Outcome <span style={{ color: '#dc3545' }}>*</span>{' '}
-          <span style={{ fontSize: '0.78rem', color: '#6c757d', fontWeight: 400 }}>(min. 3 characters)</span>
-        </label>
-        <textarea
-          id="action-result"
-          name="result"
-          data-testid="input-action-result"
-          rows={2}
-          value={result}
-          onChange={(e) => setResult(e.target.value)}
-          placeholder="State the outcome of the action (e.g. Issue resolved, pending reboot...)"
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '6px',
-            border: `1px solid ${errors.result ? '#dc3545' : '#ced4da'}`,
-            fontSize: '0.9rem',
-            outline: 'none',
-            boxSizing: 'border-box',
-          }}
-        />
-        {errors.result && (
-          <p data-testid="error-result" style={{ margin: '4px 0 0', color: '#dc3545', fontSize: '0.8rem' }}>
-            {errors.result}
-          </p>
-        )}
-      </div>
-
-      {/* Follow-up Required Toggle */}
-      <div style={{ marginBottom: '14px' }}>
-        <label
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '0.88rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            color: '#212529',
-          }}
-        >
-          <input
-            type="checkbox"
-            name="followUpRequired"
-            data-testid="input-followup-required"
-            checked={followUpRequired}
-            onChange={(e) => setFollowUpRequired(e.target.checked)}
-            style={{ width: '16px', height: '16px', accentColor: '#0f5132', cursor: 'pointer' }}
-          />
-          Follow-up Required?
-        </label>
-      </div>
-
-      {/* Follow-up Note (conditionally displayed or required) */}
-      {followUpRequired && (
-        <div style={{ marginBottom: '14px', paddingLeft: '8px', borderLeft: '3px solid #ffc107' }}>
-          <label
-            htmlFor="action-followup-note"
-            style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', fontWeight: 600, color: '#212529' }}
+        {/* Validation Error Banner */}
+        {errorMessage && (
+          <div
+            style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: 6,
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              color: '#dc2626',
+              fontSize: 13,
+            }}
           >
-            Follow-up Note <span style={{ color: '#dc3545' }}>*</span>{' '}
-            <span style={{ fontSize: '0.78rem', color: '#6c757d', fontWeight: 400 }}>(min. 3 characters)</span>
+            <span>{errorMessage}</span>
+            <button
+              type="button"
+              onClick={handleReload}
+              style={{
+                background: '#fff',
+                border: '1px solid #cbd5e1',
+                borderRadius: 4,
+                padding: '4px 12px',
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#334155',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Reload latest action
+            </button>
+          </div>
+        )}
+
+        {/* Action date and time */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#1a2d23' }}>
+            Action date and time
           </label>
-          <input
-            type="text"
-            id="action-followup-note"
-            name="followUpNote"
-            data-testid="input-followup-note"
-            value={followUpNote}
-            onChange={(e) => setFollowUpNote(e.target.value)}
-            placeholder="Specify what follow-up is needed..."
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              value={actionDateTime}
+              onChange={(e) => setActionDateTime(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 34px 8px 12px',
+                borderRadius: 6,
+                border: '1px solid #cbd5e1',
+                fontSize: 13,
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <span
+              style={{
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                pointerEvents: 'none',
+                color: '#64748b',
+                fontSize: 14,
+              }}
+            >
+              📅
+            </span>
+          </div>
+        </div>
+
+        {/* Action description */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#1a2d23' }}>
+            Action description
+          </label>
+          <textarea
+            rows={3}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             style={{
               width: '100%',
-              padding: '10px',
-              borderRadius: '6px',
-              border: `1px solid ${errors.followUpNote ? '#dc3545' : '#ced4da'}`,
-              fontSize: '0.9rem',
+              padding: '8px 12px',
+              borderRadius: 6,
+              border: '1px solid #cbd5e1',
+              fontSize: 13,
+              outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+
+        {/* Result */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#1a2d23' }}>
+              Result
+            </label>
+            <span style={{ fontSize: 11, color: '#789082' }}>
+              (required when completing)
+            </span>
+          </div>
+          <textarea
+            rows={3}
+            value={result}
+            onChange={(e) => setResult(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: 6,
+              border: '1px solid #cbd5e1',
+              fontSize: 13,
+              outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+
+        {/* Assignee */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#1a2d23' }}>
+            Assignee
+          </label>
+          <select
+            value={assignee}
+            onChange={(e) => setAssignee(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: 6,
+              border: '1px solid #cbd5e1',
+              fontSize: 13,
+              background: '#fff',
               outline: 'none',
               boxSizing: 'border-box',
             }}
-          />
-          {errors.followUpNote && (
-            <p data-testid="error-followup-note" style={{ margin: '4px 0 0', color: '#dc3545', fontSize: '0.8rem' }}>
-              {errors.followUpNote}
-            </p>
-          )}
+          >
+            <option value="Mary Support (IT STAFF)">Mary Support (IT STAFF)</option>
+            <option value="Niran Engineer (IT STAFF)">Niran Engineer (IT STAFF)</option>
+            <option value="IT Staff One (IT STAFF)">IT Staff One (IT STAFF)</option>
+            <option value="IT Staff Two (IT STAFF)">IT Staff Two (IT STAFF)</option>
+            <option value="Unassigned">Unassigned</option>
+          </select>
         </div>
-      )}
 
-      {/* Attachment Notes */}
-      <div style={{ marginBottom: '20px' }}>
-        <label
-          htmlFor="action-attachment-notes"
-          style={{ display: 'block', marginBottom: '6px', fontSize: '0.88rem', fontWeight: 600, color: '#212529' }}
-        >
-          Attachment Notes <span style={{ fontSize: '0.78rem', color: '#6c757d', fontWeight: 400 }}>(Optional)</span>
-        </label>
-        <input
-          type="text"
-          id="action-attachment-notes"
-          name="attachmentNotes"
-          data-testid="input-attachment-notes"
-          value={attachmentNotes}
-          onChange={(e) => setAttachmentNotes(e.target.value)}
-          placeholder="e.g. Refer to crash_log.txt or screenshot_error.png"
-          style={{
-            width: '100%',
-            padding: '10px',
-            borderRadius: '6px',
-            border: '1px solid #ced4da',
-            fontSize: '0.9rem',
-            outline: 'none',
-            boxSizing: 'border-box',
-          }}
-        />
-      </div>
+        {/* Follow-up required */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            id="followUpRequired"
+            checked={followUpRequired}
+            onChange={(e) => setFollowUpRequired(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: '#006B3C', cursor: 'pointer' }}
+          />
+          <label
+            htmlFor="followUpRequired"
+            style={{ fontSize: 12, fontWeight: 700, color: '#1a2d23', cursor: 'pointer' }}
+          >
+            Follow-up required
+          </label>
+        </div>
 
-      {/* Action Buttons */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          style={{
-            padding: '8px 16px',
-            borderRadius: '6px',
-            border: '1px solid #dee2e6',
-            backgroundColor: '#ffffff',
-            color: '#495057',
-            fontSize: '0.88rem',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          data-testid="submit-action-btn"
-          style={{
-            padding: '8px 18px',
-            borderRadius: '6px',
-            border: 'none',
-            backgroundColor: isSubmitting ? '#6c757d' : '#0f5132',
-            color: '#ffffff',
-            fontSize: '0.88rem',
-            fontWeight: 600,
-            cursor: isSubmitting ? 'not-allowed' : 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-          }}
-        >
-          {isSubmitting ? 'Saving...' : isEditing ? 'Update Action' : 'Save Action'}
-        </button>
-      </div>
-    </form>
+        {/* Follow-up note */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: '#1a2d23' }}>
+            Follow-up note
+          </label>
+          <textarea
+            rows={3}
+            value={followUpNote}
+            onChange={(e) => setFollowUpNote(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: 6,
+              border: '1px solid #cbd5e1',
+              fontSize: 13,
+              outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+
+        {/* Attachment notes */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label style={{ fontSize: 12, fontWeight: 700, color: '#1a2d23' }}>
+              Attachment notes
+            </label>
+            <span style={{ fontSize: 11, color: '#789082' }}>(optional)</span>
+          </div>
+          <textarea
+            rows={3}
+            value={attachmentNotes}
+            onChange={(e) => setAttachmentNotes(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              borderRadius: 6,
+              border: '1px solid #cbd5e1',
+              fontSize: 13,
+              outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+            }}
+          />
+        </div>
+
+        {/* Submit & Cancel Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              background: '#006B3C',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              padding: '8px 20px',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              opacity: isSubmitting ? 0.6 : 1,
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#004D2B')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#006B3C')}
+          >
+            Save Action
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              background: '#fff',
+              color: '#334155',
+              border: '1px solid #cbd5e1',
+              borderRadius: 6,
+              padding: '8px 18px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };

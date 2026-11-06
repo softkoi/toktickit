@@ -11,10 +11,10 @@ describe('API Integration Test: POST /api/tickets Success Flow (TEST-003 / AC-02
   let relatedSystemId = 1;
 
   beforeAll(async () => {
-    const reqUser = await prisma.requesterUser.upsert({
+    const reqUser = await prisma.user.upsert({
       where: { email: 'ticket.creator@example.com' },
       update: { isActive: true },
-      create: { name: 'Ticket Creator', email: 'ticket.creator@example.com', isActive: true },
+      create: { name: 'Ticket Creator', email: 'ticket.creator@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     requesterId = reqUser.id;
 

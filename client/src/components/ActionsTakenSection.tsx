@@ -1,16 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ActionTakenItem, CreateActionTakenDto, UpdateActionTakenDto } from '../types/actionTaken.types';
+import {
+  ActionTakenItem,
+  CreateActionTakenDto,
+  UpdateActionTakenDto,
+  ActionStatus,
+  parseActionNotes,
+  formatActionNotes,
+} from '../types/actionTaken.types';
 import { getActionsTaken, createActionTaken, updateActionTaken } from '../services/actionTaken.service';
 import { ActionsTakenList } from './ActionsTakenList';
 import { ActionTakenForm } from './ActionTakenForm';
-import { Wrench, Plus, AlertCircle } from 'lucide-react';
 
 export interface ActionsTakenSectionProps {
   ticketId: number;
+  onActionsLoaded?: (actions: ActionTakenItem[]) => void;
 }
 
-export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticketId }) => {
+export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticketId, onActionsLoaded }) => {
   const { user } = useAuth();
   const [actions, setActions] = useState<ActionTakenItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +27,7 @@ export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticket
   const [editingAction, setEditingAction] = useState<ActionTakenItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Requesters can only view. IT Staff and Administrators can add/edit.
   const canManage = user?.role === 'IT_STAFF' || user?.role === 'ADMINISTRATOR';
 
   const loadActions = useCallback(async () => {
@@ -29,6 +37,7 @@ export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticket
     try {
       const data = await getActionsTaken(ticketId);
       setActions(data);
+      onActionsLoaded?.(data);
     } catch (err: any) {
       setError(err?.message || 'Failed to load actions taken');
     } finally {
@@ -71,15 +80,38 @@ export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticket
     }
   };
 
+  const handleCompleteAction = async (actionId: number, resultText: string) => {
+    const existing = actions.find((a) => a.id === actionId);
+    if (!existing) return;
+
+    const parsed = parseActionNotes(existing.attachmentNotes);
+    const updatedNotes = formatActionNotes(parsed.cleanNotes, 'COMPLETED', parsed.assignee, parsed.actionDateTime);
+
+    await updateActionTaken(actionId, {
+      result: resultText || 'Repair verified; requester confirmed a successful submission.',
+      attachmentNotes: updatedNotes,
+    });
+    await loadActions();
+  };
+
+  const handleUpdateStatus = async (actionId: number, nextStatus: ActionStatus) => {
+    const existing = actions.find((a) => a.id === actionId);
+    if (!existing) return;
+
+    const parsed = parseActionNotes(existing.attachmentNotes);
+    const updatedNotes = formatActionNotes(parsed.cleanNotes, nextStatus, parsed.assignee, parsed.actionDateTime);
+
+    await updateActionTaken(actionId, {
+      attachmentNotes: updatedNotes,
+    });
+    await loadActions();
+  };
+
   return (
     <div
       data-testid="actions-taken-section"
       style={{
-        backgroundColor: '#ffffff',
-        borderRadius: '16px',
-        border: '1px solid #e2e8f0',
-        padding: '24px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+        marginTop: 24,
       }}
     >
       {/* Section Header */}
@@ -87,48 +119,30 @@ export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticket
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: 'flex-start',
+          gap: 16,
+          marginBottom: 16,
           flexWrap: 'wrap',
-          gap: '12px',
-          marginBottom: '16px',
-          paddingBottom: '12px',
-          borderBottom: '1px solid #f1f5f9',
         }}
       >
         <div>
           <h2
             style={{
               margin: 0,
-              fontSize: '1rem',
+              fontSize: 16,
               fontWeight: 700,
-              color: '#0f5132',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
+              color: '#006B3C',
+              marginBottom: 3,
             }}
           >
-            <Wrench size={18} />
             Actions Taken
-            <span
-              style={{
-                backgroundColor: '#e8f5e9',
-                color: '#0f5132',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: '10px',
-              }}
-            >
-              {actions.length}
-            </span>
           </h2>
-          <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-            {canManage
-              ? 'Record and track technical operations and resolution steps performed on this ticket.'
-              : 'Work log and operational steps recorded by the IT support team.'}
+          <p style={{ margin: 0, fontSize: 13, color: '#789082' }}>
+            Recorded work and its follow-up details for this ticket.
           </p>
         </div>
 
+        {/* Add Action Taken button — visible only for IT Staff & Admin */}
         {canManage && !isFormOpen && (
           <button
             type="button"
@@ -137,20 +151,21 @@ export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticket
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#0f5132',
+              backgroundColor: '#006B3C',
               color: '#ffffff',
               border: 'none',
-              borderRadius: '8px',
-              padding: '8px 14px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
+              borderRadius: 6,
+              padding: '8px 18px',
+              fontSize: 13,
+              fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              transition: 'background 0.15s',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#004D2B')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#006B3C')}
           >
-            <Plus size={15} />
-            Record Action
+            Add Action Taken
           </button>
         )}
       </div>
@@ -161,30 +176,25 @@ export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticket
             backgroundColor: '#fef2f2',
             border: '1px solid #fecaca',
             color: '#991b1b',
-            padding: '10px 14px',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
+            padding: '12px 16px',
+            borderRadius: 6,
+            fontSize: 13,
+            marginBottom: 16,
           }}
         >
-          <AlertCircle size={16} />
-          <span>{error}</span>
+          {error}
         </div>
       )}
 
       {/* Form Container (IT Staff / Admin only) */}
       {canManage && isFormOpen && (
-        <div style={{ marginBottom: '20px' }}>
-          <ActionTakenForm
-            initialData={editingAction}
-            onSubmit={handleSubmitForm}
-            onCancel={handleCancelForm}
-            isSubmitting={isSubmitting}
-          />
-        </div>
+        <ActionTakenForm
+          initialData={editingAction}
+          onSubmit={handleSubmitForm}
+          onCancel={handleCancelForm}
+          onReload={loadActions}
+          isSubmitting={isSubmitting}
+        />
       )}
 
       {/* Timeline List */}
@@ -193,6 +203,8 @@ export const ActionsTakenSection: React.FC<ActionsTakenSectionProps> = ({ ticket
         isLoading={isLoading}
         canEdit={canManage}
         onEdit={handleEditAction}
+        onCompleteAction={handleCompleteAction}
+        onUpdateStatus={handleUpdateStatus}
       />
     </div>
   );

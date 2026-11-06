@@ -8,10 +8,10 @@ const prisma = new PrismaClient();
 describe('Issue 2 API Integration Tests: Reference Data & Requesters', () => {
   beforeAll(async () => {
     // Seed test data
-    await prisma.requesterUser.upsert({
+    await prisma.user.upsert({
       where: { email: 'jennifer.anderson@example.com' },
       update: { isActive: true },
-      create: { id: 1, name: 'Jennifer Anderson', email: 'jennifer.anderson@example.com', isActive: true }
+      create: { name: 'Jennifer Anderson', email: 'jennifer.anderson@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true }
     });
 
     await prisma.category.upsert({

@@ -9,7 +9,8 @@
     "prisma:generate": "prisma generate",
     "prisma:db:push": "prisma db push",
     "prisma:seed": "tsx prisma/seed.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify-metrics": "tsx scripts/verify-metrics.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.19.0",

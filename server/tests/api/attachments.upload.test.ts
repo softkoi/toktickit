@@ -13,10 +13,10 @@ describe('API Test: POST /api/tickets/:id/attachments (TEST-007 / AC-04)', () =>
 
   beforeAll(async () => {
     // Seed test requester
-    const requester = await prisma.requesterUser.upsert({
+    const requester = await prisma.user.upsert({
       where: { email: 'uploadTestUser@example.com' },
       update: { isActive: true },
-      create: { id: 997, name: 'Upload Test User', email: 'uploadTestUser@example.com', isActive: true },
+      create: { name: 'Upload Test User', email: 'uploadTestUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     requesterId = requester.id;
 

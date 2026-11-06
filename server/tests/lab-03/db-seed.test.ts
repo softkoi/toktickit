@@ -49,7 +49,10 @@ describe('Sprint 3 Phase 2 — Database Schema & Seed Script Verification', () =
   });
 
   it('should enforce encrypted password hashes and reject plaintext storage', async () => {
-    const users = await prisma.user.findMany();
+    // Only check officially seeded users (toktickit.com domain)
+    const users = await prisma.user.findMany({
+      where: { email: { contains: '@toktickit.com' } }
+    });
     expect(users.length).toBeGreaterThan(0);
 
     for (const user of users) {

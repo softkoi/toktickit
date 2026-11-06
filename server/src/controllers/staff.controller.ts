@@ -25,9 +25,12 @@ export async function getStaffTickets(req: AuthRequest, res: Response) {
   try {
     const search = req.query.search ? String(req.query.search).trim() : '';
     const status = req.query.status ? String(req.query.status).trim() : undefined;
-    const priority = req.query.priority ? String(req.query.priority).trim() : undefined;
+    const itPriority = (req.query.itPriority || req.query.priority) ? String(req.query.itPriority || req.query.priority).trim() : undefined;
+    const requestedPriority = req.query.requestedPriority ? String(req.query.requestedPriority).trim() : undefined;
+    const category = req.query.category ? String(req.query.category).trim() : undefined;
+    const assignment = req.query.assignment ? String(req.query.assignment).trim() : undefined;
     const ownerIdQuery = req.query.ownerId ? String(req.query.ownerId).trim() : undefined;
-    const sortBy = String(req.query.sortBy || 'createdAt').trim();
+    const sortBy = String(req.query.sortBy || 'updatedAt').trim();
     const sortOrder = String(req.query.sortOrder || 'desc').trim().toLowerCase() === 'asc' ? 'asc' : 'desc';
     const page = Math.max(1, parseInt(String(req.query.page || '1'), 10) || 1);
     const pageSize = Math.max(1, parseInt(String(req.query.pageSize || '10'), 10) || 10);
@@ -38,7 +41,9 @@ export async function getStaffTickets(req: AuthRequest, res: Response) {
       where.OR = [
         { ticketNumber: { contains: search } },
         { summary: { contains: search } },
-        { description: { contains: search } }
+        { description: { contains: search } },
+        { requester: { name: { contains: search } } },
+        { requester: { email: { contains: search } } }
       ];
     }
 
@@ -46,8 +51,28 @@ export async function getStaffTickets(req: AuthRequest, res: Response) {
       where.currentStatus = status;
     }
 
-    if (priority) {
-      where.itPriority = priority;
+    if (itPriority) {
+      where.itPriority = itPriority;
+    }
+    if (requestedPriority) {
+      where.requestedPriority = requestedPriority;
+    }
+    if (category) {
+      const parsedCatId = parseInt(category, 10);
+      if (!isNaN(parsedCatId)) {
+        where.categoryId = parsedCatId;
+      } else {
+        where.category = { name: category };
+      }
+    }
+    if (assignment) {
+      if (assignment.toLowerCase() === 'unassigned') {
+        where.ownerId = null;
+      } else if (assignment.toLowerCase() === 'assigned') {
+        where.ownerId = { not: null };
+      } else if (assignment.toLowerCase() === 'my-assigned' || assignment.toLowerCase() === 'mine') {
+        where.ownerId = req.user!.id;
+      }
     }
 
     if (ownerIdQuery) {

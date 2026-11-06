@@ -107,7 +107,7 @@ export async function getStaffDashboard(req: AuthRequest, res: Response) {
     // Authorization: IT_STAFF and ADMINISTRATOR only
     if (req.user?.role !== 'IT_STAFF' && req.user?.role !== 'ADMINISTRATOR') {
       return res.status(403).json({
-        error: { code: 'FORBIDDEN', message: 'Access denied: IT Staff or Administrator role required' }
+        error: "Operational staff access is required."
       });
     }
 
@@ -118,10 +118,18 @@ export async function getStaffDashboard(req: AuthRequest, res: Response) {
       waitingForRequesterCount,
       resolvedCount,
       closedCount,
+      reopenedCount,
+      cancelledCount,
       myAssignedCount,
       unassignedCount,
+      urgentActiveCount,
+      lowPriorityCount,
+      mediumPriorityCount,
+      highPriorityCount,
+      urgentPriorityCount,
       userAccountsCount,
-      recentRawTickets
+      recentRawTickets,
+      urgentRawTickets
     ] = await Promise.all([
       prisma.ticket.count({ where: { currentStatus: 'NEW' } }),
       prisma.ticket.count({ where: { currentStatus: 'OPEN' } }),
@@ -129,20 +137,51 @@ export async function getStaffDashboard(req: AuthRequest, res: Response) {
       prisma.ticket.count({ where: { currentStatus: 'WAITING_FOR_REQUESTER' } }),
       prisma.ticket.count({ where: { currentStatus: 'RESOLVED' } }),
       prisma.ticket.count({ where: { currentStatus: 'CLOSED' } }),
+      prisma.ticket.count({ where: { currentStatus: 'REOPENED' } }),
+      prisma.ticket.count({ where: { currentStatus: 'CANCELLED' } }),
       prisma.ticket.count({
         where: {
           ownerId: userId,
           currentStatus: { notIn: ['CLOSED', 'CANCELLED'] }
         }
       }),
+      // Predicate: ownerId IS NULL AND currentStatus IN (NEW, OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, REOPENED)
       prisma.ticket.count({
         where: {
           ownerId: null,
-          currentStatus: { notIn: ['CLOSED', 'CANCELLED'] }
+          currentStatus: { in: ['NEW', 'OPEN', 'IN_PROGRESS', 'WAITING_FOR_REQUESTER', 'REOPENED'] }
         }
       }),
+      // Predicate: itPriority = URGENT AND currentStatus IN (NEW, OPEN, IN_PROGRESS, WAITING_FOR_REQUESTER, REOPENED, RESOLVED)
+      prisma.ticket.count({
+        where: {
+          itPriority: 'URGENT',
+          currentStatus: { in: ['NEW', 'OPEN', 'IN_PROGRESS', 'WAITING_FOR_REQUESTER', 'REOPENED', 'RESOLVED'] }
+        }
+      }),
+      prisma.ticket.count({ where: { itPriority: 'LOW' } }),
+      prisma.ticket.count({ where: { itPriority: 'MEDIUM' } }),
+      prisma.ticket.count({ where: { itPriority: 'HIGH' } }),
+      prisma.ticket.count({ where: { itPriority: 'URGENT' } }),
       prisma.user.count({ where: { isActive: true } }),
       prisma.ticket.findMany({
+        orderBy: { updatedAt: 'desc' },
+        take: 5,
+        include: {
+          requester: { select: { id: true, name: true, email: true } },
+          owner: { select: { id: true, name: true, email: true, role: true } },
+          category: { select: { id: true, name: true } }
+        }
+      }),
+      prisma.ticket.findMany({
+        where: {
+          OR: [
+            { itPriority: 'URGENT' },
+            { requestedPriority: 'URGENT' },
+            { itPriority: 'HIGH' }
+          ],
+          currentStatus: { in: ['NEW', 'OPEN', 'IN_PROGRESS', 'WAITING_FOR_REQUESTER', 'REOPENED', 'RESOLVED'] }
+        },
         orderBy: { updatedAt: 'desc' },
         take: 5,
         include: {
@@ -153,7 +192,7 @@ export async function getStaffDashboard(req: AuthRequest, res: Response) {
       })
     ]);
 
-    const recentTickets = recentRawTickets.map((t) => ({
+    const formatTicket = (t: any) => ({
       id: t.id,
       ticketNumber: t.ticketNumber,
       summary: t.summary,
@@ -164,7 +203,10 @@ export async function getStaffDashboard(req: AuthRequest, res: Response) {
       updatedAt: t.updatedAt,
       requester: t.requester,
       assignedTo: t.owner ? { id: t.owner.id, name: t.owner.name } : null
-    }));
+    });
+
+    const recentTickets = recentRawTickets.map(formatTicket);
+    const urgentTickets = urgentRawTickets.map(formatTicket);
 
     return res.status(200).json({
       metrics: {
@@ -174,11 +216,19 @@ export async function getStaffDashboard(req: AuthRequest, res: Response) {
         waitingForRequesterCount,
         resolvedCount,
         closedCount,
+        reopenedCount,
+        cancelledCount,
         myAssignedCount,
         unassignedCount,
+        urgentActiveCount,
+        lowPriorityCount,
+        mediumPriorityCount,
+        highPriorityCount,
+        urgentPriorityCount,
         userAccountsCount
       },
-      recentTickets
+      recentTickets,
+      urgentTickets
     });
   } catch (error) {
     return res.status(500).json({

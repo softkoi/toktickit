@@ -12,10 +12,10 @@ describe('API Test: GET /api/tickets Multi-condition Filtering (TEST-014 / AC-09
   let systemId: number;
 
   beforeAll(async () => {
-    const user = await prisma.requesterUser.upsert({
+    const user = await prisma.user.upsert({
       where: { email: 'filterUser@example.com' },
       update: { isActive: true },
-      create: { id: 914, name: 'Filter Test User', email: 'filterUser@example.com', isActive: true },
+      create: { name: 'Filter Test User', email: 'filterUser@example.com', passwordHash: 'hashed_pw', role: 'REQUESTER', isActive: true },
     });
     userId = user.id;
 

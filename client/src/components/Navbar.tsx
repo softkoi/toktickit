@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Clock, FileText, PlusCircle, Users, Shield, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
 
 export type NavTab = 'dashboard' | 'my-tickets' | 'create-ticket' | 'staff-queue' | 'user-management';
 
@@ -11,293 +10,295 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab = 'dashboard', onNavigate }) => {
   const { user, logout } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleNavigate = (tab: NavTab) => {
     onNavigate?.(tab);
-    setIsMobileMenuOpen(false);
   };
 
   const getRoleLabel = (role?: string) => {
     switch (role) {
-      case 'ADMINISTRATOR': return 'Administrator';
-      case 'IT_STAFF': return 'IT Staff';
-      case 'REQUESTER': return 'Requester';
-      default: return 'User';
+      case 'ADMINISTRATOR': return 'ADMIN';
+      case 'IT_STAFF': return 'IT STAFF';
+      case 'REQUESTER': return 'REQUESTER';
+      default: return 'USER';
     }
   };
 
+  const initial = user?.name ? user.name.trim().charAt(0).toUpperCase() : 'U';
+
   return (
-    <header className="navbar-container">
-      <div className="navbar">
-        <div className="navbar-left">
-          <a 
-            href="#" 
-            className="navbar-brand"
-            onClick={(e) => {
-              e.preventDefault();
-              handleNavigate('dashboard');
-            }}
+    <header className="toktick-navbar" style={{ background: '#006B3C', color: '#fff', width: '100%', boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        
+        {/* Left: Brand */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); handleNavigate('dashboard'); }}
+            style={{ color: '#fff', textDecoration: 'none', fontSize: 18, fontWeight: 800, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            <div className="logo-icon-box">
-              <Clock size={20} color="#FFFFFF" />
-            </div>
-            <span className="brand-title">TokTickIT</span>
+            TokTickIT
           </a>
 
-          {/* Desktop Navigation Links */}
-          <nav className="nav-links desktop-nav">
+          {/* Desktop/Tablet Nav Links */}
+          <nav className="navbar-nav-links" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Requester Links */}
             {(user?.role === 'REQUESTER' || !user) && (
               <>
-                <button 
-                  className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+                <button
+                  className="nav-btn"
                   onClick={() => handleNavigate('dashboard')}
                   data-testid="nav-requester-dashboard"
+                  style={{
+                    background: activeTab === 'dashboard' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'dashboard' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
                 >
-                  <LayoutDashboard size={16} />
-                  <span>Dashboard</span>
+                  Dashboard
                 </button>
-                <button 
-                  className={`nav-link ${activeTab === 'my-tickets' ? 'active' : ''}`}
+                <button
+                  className="nav-btn"
                   onClick={() => handleNavigate('my-tickets')}
+                  data-testid="nav-my-tickets"
+                  style={{
+                    background: activeTab === 'my-tickets' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'my-tickets' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
                 >
-                  <FileText size={16} />
-                  <span>My Tickets</span>
+                  My Tickets
                 </button>
-                <button 
-                  className={`nav-link ${activeTab === 'create-ticket' ? 'active' : ''}`}
+                <button
+                  className="nav-btn"
                   onClick={() => handleNavigate('create-ticket')}
+                  data-testid="nav-create-ticket"
+                  style={{
+                    background: activeTab === 'create-ticket' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'create-ticket' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
                 >
-                  <PlusCircle size={16} />
-                  <span>Create Ticket</span>
+                  Create Ticket
                 </button>
               </>
             )}
 
+            {/* IT Staff Links */}
             {user?.role === 'IT_STAFF' && (
               <>
-                <button 
-                  className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+                <button
+                  className="nav-btn"
                   onClick={() => handleNavigate('dashboard')}
                   data-testid="nav-staff-dashboard"
+                  style={{
+                    background: activeTab === 'dashboard' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'dashboard' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
                 >
-                  <LayoutDashboard size={16} />
-                  <span>Dashboard</span>
+                  Dashboard
                 </button>
-                <button 
-                  className={`nav-link ${activeTab === 'staff-queue' ? 'active' : ''}`}
+                <button
+                  className="nav-btn"
                   onClick={() => handleNavigate('staff-queue')}
+                  data-testid="nav-staff-queue"
+                  style={{
+                    background: activeTab === 'staff-queue' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'staff-queue' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
                 >
-                  <FileText size={16} />
-                  <span>My Queue</span>
+                  Ticket Queue
                 </button>
-                <button 
-                  className={`nav-link ${activeTab === 'create-ticket' ? 'active' : ''}`}
+                <button
+                  className="nav-btn"
                   onClick={() => handleNavigate('create-ticket')}
+                  style={{
+                    background: activeTab === 'create-ticket' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'create-ticket' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
                 >
-                  <PlusCircle size={16} />
-                  <span>Create Ticket</span>
+                  Create Ticket
                 </button>
               </>
             )}
 
+            {/* Admin Links */}
             {user?.role === 'ADMINISTRATOR' && (
               <>
-                <button 
-                  className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+                <button
+                  className="nav-btn"
                   onClick={() => handleNavigate('dashboard')}
                   data-testid="nav-admin-dashboard"
+                  style={{
+                    background: activeTab === 'dashboard' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'dashboard' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
                 >
-                  <LayoutDashboard size={16} />
-                  <span>Dashboard</span>
+                  Dashboard
                 </button>
-                <button 
-                  className={`nav-link ${activeTab === 'user-management' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('user-management')}
-                >
-                  <Users size={16} />
-                  <span>Users</span>
-                </button>
-                <button 
-                  className={`nav-link ${activeTab === 'staff-queue' ? 'active' : ''}`}
+                <button
+                  className="nav-btn"
                   onClick={() => handleNavigate('staff-queue')}
+                  style={{
+                    background: activeTab === 'staff-queue' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'staff-queue' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
                 >
-                  <Shield size={16} />
-                  <span>Ticket Queue</span>
+                  Ticket Queue
+                </button>
+                <button
+                  className="nav-btn"
+                  onClick={() => handleNavigate('user-management')}
+                  style={{
+                    background: activeTab === 'user-management' ? '#004D2B' : 'transparent',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: 13,
+                    fontWeight: activeTab === 'user-management' ? 700 : 500,
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
+                >
+                  Users
                 </button>
               </>
             )}
           </nav>
         </div>
 
-        {/* Desktop User Profile & Logout */}
-        <div className="navbar-right">
-          <div className="desktop-nav">
-            {user && (
-              <div 
-                className="user-profile-badge" 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  padding: '6px 12px', 
-                  backgroundColor: 'rgba(0, 54, 30, 0.4)', 
-                  borderRadius: '8px', 
-                  border: '1px solid rgba(255, 255, 255, 0.2)' 
+        {/* Right: User Profile & Sign out */}
+        <div className="navbar-user-section" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {user && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Circle avatar with initial */}
+              <div
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.25)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  color: '#fff'
                 }}
               >
-                <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{user.name}</span>
-                <span 
-                  style={{ 
-                    fontSize: '11px', 
-                    fontWeight: 700, 
-                    textTransform: 'uppercase', 
-                    padding: '2px 8px', 
-                    borderRadius: '9999px',
-                    backgroundColor: user.role === 'ADMINISTRATOR' ? '#7E22CE' : user.role === 'IT_STAFF' ? '#D97706' : '#148A52',
-                    color: '#FFFFFF'
-                  }}
-                >
-                  {user.role === 'ADMINISTRATOR' ? 'Admin' : getRoleLabel(user.role)}
+                {initial}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1, color: '#fff' }}>
+                  {user.name}
+                </span>
+                <span style={{ fontSize: 9, fontWeight: 800, color: '#A8D0B9', letterSpacing: '0.04em' }}>
+                  {getRoleLabel(user.role)}
                 </span>
               </div>
-            )}
-            <button 
-              onClick={() => logout()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                fontSize: '13px',
-                fontWeight: 600,
-                color: '#FFFFFF',
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'background-color 0.15s ease'
-              }}
-              title="Sign Out"
-            >
-              <LogOut size={14} />
-              <span>Logout</span>
-            </button>
-          </div>
+            </div>
+          )}
 
-          <div className="mobile-nav-toggle-area">
-            <span className="mobile-user-name" style={{ fontSize: '13px', color: '#FFFFFF', fontWeight: 600 }}>
-              {user ? user.name.split(' ')[0] : 'User'}
-            </span>
-            <button 
-              className="mobile-menu-toggle-btn"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle navigation menu"
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-            >
-              {isMobileMenuOpen ? <X size={22} color="#FFFFFF" /> : <Menu size={22} color="#FFFFFF" />}
-            </button>
-          </div>
+          <button
+            onClick={() => logout()}
+            data-testid="nav-sign-out"
+            style={{
+              background: 'rgba(0, 0, 0, 0.15)',
+              border: '1px solid rgba(255, 255, 255, 0.35)',
+              color: '#fff',
+              borderRadius: 9999,
+              padding: '4px 12px',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'background 0.15s'
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(0, 0, 0, 0.15)')}
+          >
+            Sign out
+          </button>
         </div>
+
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {isMobileMenuOpen && (
-        <div className="mobile-drawer-menu">
-          <div className="mobile-user-card">
-            <div className="mobile-user-info">
-              <span className="mobile-signed-in-label">Signed in as:</span>
-              <span className="mobile-user-fullname">{user ? `${user.name} - ${getRoleLabel(user.role)}` : 'Not Signed In'}</span>
-            </div>
-            <button 
-              className="mobile-logout-btn"
-              onClick={() => { setIsMobileMenuOpen(false); logout(); }}
-            >
-              Log out
-            </button>
-          </div>
-
-          <div className="mobile-nav-links">
-            {(user?.role === 'REQUESTER' || !user) && (
-              <>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('dashboard')}
-                >
-                  <LayoutDashboard size={18} className="text-emerald-300" />
-                  <span>Dashboard</span>
-                </button>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'my-tickets' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('my-tickets')}
-                >
-                  <FileText size={18} className="text-emerald-300" />
-                  <span>My Tickets</span>
-                </button>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'create-ticket' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('create-ticket')}
-                >
-                  <PlusCircle size={18} className="text-emerald-300" />
-                  <span>Create Ticket</span>
-                </button>
-              </>
-            )}
-
-            {user?.role === 'IT_STAFF' && (
-              <>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('dashboard')}
-                >
-                  <LayoutDashboard size={18} className="text-emerald-300" />
-                  <span>Dashboard</span>
-                </button>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'staff-queue' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('staff-queue')}
-                >
-                  <FileText size={18} className="text-emerald-300" />
-                  <span>My Queue</span>
-                </button>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'create-ticket' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('create-ticket')}
-                >
-                  <PlusCircle size={18} className="text-emerald-300" />
-                  <span>Create Ticket</span>
-                </button>
-              </>
-            )}
-
-            {user?.role === 'ADMINISTRATOR' && (
-              <>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('dashboard')}
-                >
-                  <LayoutDashboard size={18} className="text-emerald-300" />
-                  <span>Dashboard</span>
-                </button>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'user-management' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('user-management')}
-                >
-                  <Users size={18} className="text-purple-300" />
-                  <span>Users</span>
-                </button>
-                <button 
-                  className={`mobile-nav-item ${activeTab === 'staff-queue' ? 'active' : ''}`}
-                  onClick={() => handleNavigate('staff-queue')}
-                >
-                  <Shield size={18} className="text-emerald-300" />
-                  <span>Ticket Queue</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Responsive mobile styling */}
+      <style>{`
+        @media (max-width: 640px) {
+          .toktick-navbar > div {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+            padding: 12px 14px !important;
+          }
+          .navbar-nav-links {
+            width: 100% !important;
+            overflow-x: auto !important;
+            padding-bottom: 2px !important;
+          }
+          .navbar-user-section {
+            width: 100% !important;
+            justify-content: space-between !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
+            padding-top: 8px !important;
+          }
+        }
+      `}</style>
     </header>
   );
 };

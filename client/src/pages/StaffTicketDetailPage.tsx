@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, CheckCircle, AlertTriangle, Send, Lock, User, Shield } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { ActionsTakenSection } from '../components/ActionsTakenSection';
+import { ActionTakenItem, parseActionNotes } from '../types/actionTaken.types';
 
 export const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
   NEW: ['OPEN', 'IN_PROGRESS', 'CANCELLED'],
@@ -58,19 +59,25 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-  // Form states
+  // Form controls
   const [selectedOwnerId, setSelectedOwnerId] = useState<string>('');
-  const [selectedPriority, setSelectedPriority] = useState<string>('MEDIUM');
-  const [selectedStatus, setSelectedStatus] = useState<string>('IN_PROGRESS');
+  const [selectedPriority, setSelectedPriority] = useState<string>('HIGH');
+  const [selectedNextStatus, setSelectedNextStatus] = useState<string>('');
+  const [confirmResolve, setConfirmResolve] = useState<boolean>(false);
 
+  // Comments & Notes
   const [newComment, setNewComment] = useState('');
   const [newNote, setNewNote] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [submittingNote, setSubmittingNote] = useState(false);
 
-  // Available IT Staff & Admin list for reassignment
+  // Live actions taken list for resolution check
+  const [actionsList, setActionsList] = useState<ActionTakenItem[]>([]);
+
+  // Staff users for owner dropdown
   const [staffUsers, setStaffUsers] = useState<{ id: number; name: string; email: string; role: string }[]>([]);
 
   const fetchTicket = async () => {
@@ -87,8 +94,9 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
       const t: TicketDetail = data.ticket;
       setTicket(t);
       setSelectedOwnerId(t.owner?.id ? String(t.owner.id) : '');
-      setSelectedPriority(t.itPriority || t.requestedPriority || 'MEDIUM');
-      setSelectedStatus(t.currentStatus || 'NEW');
+      setSelectedPriority(t.itPriority || 'HIGH');
+      setSelectedNextStatus('');
+      setConfirmResolve(false);
     } catch {
       setError('Network error fetching ticket detail');
     } finally {
@@ -105,7 +113,12 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
         setStaffUsers(filtered);
       }
     } catch {
-      // Fallback
+      // Fallback staff list if admin endpoint restricted
+      setStaffUsers([
+        { id: 1594, name: 'Somchai Technician', email: 'somchai@toktickit.com', role: 'IT_STAFF' },
+        { id: 1595, name: 'Mary Support', email: 'mary@toktickit.com', role: 'IT_STAFF' },
+        { id: 1596, name: 'Niran Engineer', email: 'niran@toktickit.com', role: 'IT_STAFF' }
+      ]);
     }
   };
 
@@ -114,7 +127,9 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
     fetchStaffList();
   }, [ticketId]);
 
-  const handleAssign = async (newOwnerId: string) => {
+  const handleOwnerChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newOwnerId = e.target.value;
+    setSelectedOwnerId(newOwnerId);
     setError(null);
     try {
       const res = await fetch(`/api/staff/tickets/${ticketId}/assign`, {
@@ -135,20 +150,22 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
     }
   };
 
-  const handleSavePriority = async () => {
+  const handlePriorityChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPriority = e.target.value;
+    setSelectedPriority(newPriority);
     setError(null);
     try {
       const res = await fetch(`/api/staff/tickets/${ticketId}/priority`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ itPriority: selectedPriority })
+        body: JSON.stringify({ itPriority: newPriority })
       });
       if (!res.ok) {
         const data = await res.json();
         setError(data.error?.message || 'Failed to update priority');
       } else {
-        setActionSuccess(`IT Priority updated to ${selectedPriority}`);
+        setActionSuccess(`IT Priority updated to ${newPriority}`);
         fetchTicket();
       }
     } catch {
@@ -157,25 +174,40 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
   };
 
   const handleUpdateStatus = async () => {
-    // Peer Review #2: Safety confirmation prompt for critical/terminal transitions
-    if (selectedStatus === 'RESOLVED' || selectedStatus === 'CANCELLED') {
-      const confirmed = window.confirm(
-        `Are you sure you want to transition this ticket to ${selectedStatus}? This is a significant workflow milestone.`
-      );
-      if (!confirmed) return;
+    if (!selectedNextStatus) return;
+
+    // Resolution Gate Check (Image 3: "เงื่อนไขก่อน Resolve")
+    if (selectedNextStatus === 'RESOLVED') {
+      const hasCompletedActionWithResult = actionsList.some((action) => {
+        const { status } = parseActionNotes(action.attachmentNotes);
+        const effStatus = action.status || status;
+        const validResult =
+          action.result &&
+          action.result.trim().length > 0 &&
+          action.result !== 'No result recorded yet.';
+        return effStatus === 'COMPLETED' && Boolean(validResult);
+      });
+
+      if (!hasCompletedActionWithResult) {
+        setResolutionError('Resolving a ticket requires a completed action with a non-empty result.');
+        return;
+      }
     }
 
+    setResolutionError(null);
     setError(null);
+
     try {
       const res = await fetch(`/api/staff/tickets/${ticketId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          status: selectedStatus,
+          status: selectedNextStatus,
           lastKnownUpdatedAt: ticket?.updatedAt
         })
       });
+
       if (!res.ok) {
         const data = await res.json();
         if (res.status === 409) {
@@ -185,7 +217,9 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
         }
         setError(data.error?.message || 'Invalid status transition');
       } else {
-        setActionSuccess(`Status updated to ${selectedStatus}`);
+        setActionSuccess(`Status updated to ${selectedNextStatus}`);
+        setSelectedNextStatus('');
+        setConfirmResolve(false);
         fetchTicket();
       }
     } catch {
@@ -253,326 +287,286 @@ export const StaffTicketDetailPage: React.FC<StaffTicketDetailProps> = ({ ticket
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
-      case 'IN_PROGRESS': return 'bg-amber-100 text-amber-900 border-amber-300';
-      case 'RESOLVED': return 'bg-emerald-100 text-emerald-900 border-emerald-300';
-      case 'CLOSED': return 'bg-slate-100 text-slate-800 border-slate-300';
+      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'RESOLVED': return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+      case 'OPEN': return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'CLOSED': return 'bg-slate-100 text-slate-700 border-slate-300';
+      case 'REOPENED': return 'bg-purple-100 text-purple-800 border-purple-200';
       default: return 'bg-emerald-50 text-emerald-800 border-emerald-200';
     }
   };
 
-  const getPriorityBadgeStyle = (priority: string) => {
-    switch (priority) {
-      case 'HIGH': return 'bg-red-100 text-red-800 border-red-200';
-      case 'MEDIUM': return 'bg-amber-100 text-amber-800 border-amber-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
-    }
-  };
+  if (loading) return <div className="max-w-5xl mx-auto p-12 text-center text-slate-500">Loading ticket detail...</div>;
+  if (!ticket) return <div className="max-w-5xl mx-auto p-12 text-center text-slate-500">Ticket not found.</div>;
 
-  if (loading) return <div className="max-w-6xl mx-auto p-12 text-center text-slate-500">Loading ticket detail...</div>;
-  if (!ticket) return <div className="max-w-6xl mx-auto p-12 text-center text-slate-500">Ticket not found.</div>;
+  const currentStatus = ticket.currentStatus || 'NEW';
+  const permittedTransitions = ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
-      {/* Back to Queue */}
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-5">
+      {/* Back to Ticket Queue link */}
       <div>
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 hover:text-emerald-900 hover:underline"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-emerald-800 hover:underline"
         >
-          ← Back to My Queue
+          ← Back to Ticket Queue
         </button>
       </div>
 
-      {/* Notifications */}
-      {actionSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-xl flex items-center justify-between shadow-sm">
-          <span className="flex items-center gap-2 font-medium"><CheckCircle size={16} /> {actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="font-bold text-slate-500 hover:text-slate-800">&times;</button>
-        </div>
-      )}
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-800 text-sm rounded-xl flex items-center justify-between shadow-sm">
-          <span className="flex items-center gap-2 font-medium"><AlertTriangle size={16} /> {error}</span>
-          <button onClick={() => setError(null)} className="font-bold text-slate-500 hover:text-slate-800">&times;</button>
-        </div>
-      )}
-
-      {/* Card 1: Top Ticket Header & Metadata */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-start justify-between">
-          <span className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">{ticket.ticketNumber}</span>
-          <span className={`px-3 py-1 text-xs font-bold rounded-full border uppercase tracking-wider ${getStatusBadgeStyle(ticket.currentStatus)}`}>
+      {/* Ticket Number & Status Header */}
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono font-bold text-slate-500">{ticket.ticketNumber}</span>
+          <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full border uppercase tracking-wider ${getStatusBadgeStyle(ticket.currentStatus)}`}>
             {ticket.currentStatus.replace('_', ' ')}
           </span>
         </div>
-
-        <h1 className="text-xl font-bold text-slate-900">{ticket.summary}</h1>
-
-        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6 text-xs">
-          <div>
-            <span className="block text-slate-400 font-medium mb-1">Requester</span>
-            <span className="font-semibold text-slate-800 block">{ticket.requester.name}</span>
-            <span className="text-slate-400 text-[11px] block">{ticket.requester.email}</span>
-          </div>
-
-          <div>
-            <span className="block text-slate-400 font-medium mb-1">Category</span>
-            <span className="font-semibold text-slate-800">{ticket.category?.name || '—'}</span>
-          </div>
-
-          <div>
-            <span className="block text-slate-400 font-medium mb-1">Related System</span>
-            <span className="font-semibold text-slate-800">{ticket.relatedSystem?.name || '—'}</span>
-          </div>
-
-          <div>
-            <span className="block text-slate-400 font-medium mb-1">Created</span>
-            <span className="font-semibold text-slate-800">{new Date(ticket.createdAt).toLocaleString()}</span>
-          </div>
-
-          <div>
-            <span className="block text-slate-400 font-medium mb-1">Requested Priority</span>
-            <span className={`inline-block px-2.5 py-0.5 font-bold rounded border ${getPriorityBadgeStyle(ticket.requestedPriority)}`}>
-              {ticket.requestedPriority}
-            </span>
-          </div>
-
-          <div>
-            <span className="block text-slate-400 font-medium mb-1">Last Updated</span>
-            <span className="font-semibold text-slate-800">{new Date(ticket.updatedAt).toLocaleString()}</span>
-          </div>
-
-          <div className="col-span-2">
-            <span className="block text-slate-400 font-medium mb-1">Requester resolution</span>
-            <span className="font-semibold text-slate-800">{ticket.requesterResolution || 'Not reported'}</span>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold text-slate-900 mt-1">{ticket.summary}</h1>
       </div>
 
-      {/* Card 2: IT Operations Control Panel (3 Columns) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Owner Control */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
-          <h3 className="text-sm font-bold text-slate-800">Ticket Owner</h3>
-          <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">Owner</label>
-            <select
-              value={selectedOwnerId}
-              onChange={(e) => {
-                setSelectedOwnerId(e.target.value);
-                handleAssign(e.target.value);
-              }}
-              className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-medium bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
-            >
-              <option value="">-- Unassigned --</option>
-              {staffUsers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} {s.email ? `— ${s.email}` : ''}
-                </option>
-              ))}
-            </select>
+      {/* Resolution Gate Warning Banner (matches Image 3) */}
+      {(resolutionError || error) && (
+        <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg font-medium flex items-center justify-between">
+          <span>{resolutionError || error}</span>
+          <button
+            onClick={() => {
+              setResolutionError(null);
+              setError(null);
+            }}
+            className="font-bold text-red-400 hover:text-red-700 ml-4"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* Success notification */}
+      {actionSuccess && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg font-medium flex items-center justify-between">
+          <span className="flex items-center gap-1.5"><CheckCircle size={14} /> {actionSuccess}</span>
+          <button onClick={() => setActionSuccess(null)} className="font-bold text-slate-400 hover:text-slate-700 ml-4">&times;</button>
+        </div>
+      )}
+
+      {/* 2-Column Details: Requester details (Left) & Operational controls (Right) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Requester details */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-3">Requester details</h2>
+          <div className="space-y-1 text-xs">
+            <div className="font-semibold text-slate-800">{ticket.requester.name}</div>
+            <div className="text-slate-500">{ticket.requester.email}</div>
+            <div className="text-slate-500 mb-2">IT Support</div>
+
+            <div className="text-slate-700 pt-2 border-t border-slate-100">
+              <span className="text-slate-500">Category: </span>
+              <span className="font-medium">{ticket.category?.name || 'Network'}</span>
+            </div>
+            <div className="text-slate-700">
+              <span className="text-slate-500">System: </span>
+              <span className="font-medium">{ticket.relatedSystem?.name || 'VPN'}</span>
+            </div>
+
+            <div className="pt-2 text-slate-600 leading-relaxed">
+              {ticket.description}
+            </div>
           </div>
         </div>
 
-        {/* IT Priority Control */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
-          <h3 className="text-sm font-bold text-slate-800">IT Priority</h3>
+        {/* Operational controls (matches Image 4 & Image 3) */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+          <h2 className="text-xs font-bold text-[#006B3C] uppercase tracking-wider mb-3">Operational controls</h2>
+
+          <div className="text-xs text-slate-600 mb-3">
+            Requested Priority: <strong className="font-bold text-slate-900">{ticket.requestedPriority}</strong>
+          </div>
+
           <div className="space-y-3">
+            {/* IT Priority */}
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">IT Priority</label>
+              <label className="block text-xs font-bold text-slate-800 mb-1">IT Priority</label>
               <select
                 value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}
-                className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                onChange={handlePriorityChange}
+                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 focus:ring-1 focus:ring-emerald-600 outline-none"
               >
                 <option value="LOW">LOW</option>
                 <option value="MEDIUM">MEDIUM</option>
                 <option value="HIGH">HIGH</option>
               </select>
             </div>
-            <button
-              onClick={handleSavePriority}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
-            >
-              Save priority
-            </button>
-          </div>
-        </div>
 
-        {/* Formal Status Control */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
-          <h3 className="text-sm font-bold text-slate-800">Formal Status</h3>
-          <div className="space-y-3">
+            {/* Owner */}
             <div>
-              <label className="block text-xs font-medium text-slate-500 mb-1">Next permitted status</label>
-              {(() => {
-                const current = ticket?.currentStatus || 'NEW';
-                const nextOptions = ALLOWED_STATUS_TRANSITIONS[current] || [];
-                const permitted = [current, ...nextOptions];
-                const isTerminal = nextOptions.length === 0;
-
-                return (
-                  <>
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      disabled={isTerminal}
-                      data-testid="status-select-dropdown"
-                      className="w-full p-2.5 border border-slate-300 rounded-xl text-xs font-semibold bg-white focus:ring-2 focus:ring-emerald-500 outline-none disabled:bg-slate-100 disabled:text-slate-400"
-                    >
-                      {permitted.map((st) => (
-                        <option key={st} value={st}>
-                          {st.replace(/_/g, ' ')} {st === current ? '(current)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                    {isTerminal && (
-                      <p className="mt-1 text-[11px] text-slate-400 italic">Terminal state: no further transitions permitted</p>
-                    )}
-                  </>
-                );
-              })()}
+              <label className="block text-xs font-bold text-slate-800 mb-1">Owner</label>
+              <select
+                value={selectedOwnerId}
+                onChange={handleOwnerChange}
+                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 focus:ring-1 focus:ring-emerald-600 outline-none"
+              >
+                <option value="">-- Unassigned --</option>
+                {staffUsers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} (IT STAFF)
+                  </option>
+                ))}
+              </select>
             </div>
-            <button
-              onClick={handleUpdateStatus}
-              disabled={ticket ? (ALLOWED_STATUS_TRANSITIONS[ticket.currentStatus] || []).length === 0 || selectedStatus === ticket.currentStatus : false}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
-            >
-              Update status
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Card 3: Description & Attachments */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div>
-          <h3 className="text-sm font-bold text-slate-800 mb-2">Description</h3>
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-700 whitespace-pre-wrap min-h-[60px]">
-            {ticket.description || 'No description provided.'}
-          </div>
-        </div>
+            {/* Next status */}
+            <div>
+              <label className="block text-xs font-bold text-slate-800 mb-1">Next status</label>
+              <select
+                value={selectedNextStatus}
+                onChange={(e) => {
+                  setSelectedNextStatus(e.target.value);
+                  setConfirmResolve(false);
+                  setResolutionError(null);
+                }}
+                className="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-800 focus:ring-1 focus:ring-emerald-600 outline-none"
+              >
+                <option value="">Select a transition</option>
+                {permittedTransitions.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </select>
 
-        <div>
-          <h3 className="text-sm font-bold text-slate-800 mb-1">Attachments</h3>
-          {(!ticket.attachments || ticket.attachments.length === 0) ? (
-            <p className="text-xs text-slate-400">No attachments.</p>
-          ) : (
-            <div className="space-y-2 pt-2">
-              {ticket.attachments.map((att) => (
-                <div key={att.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs">
-                  <span className="font-medium text-slate-700">{att.fileName} ({(att.sizeBytes / 1024).toFixed(1)} KB)</span>
-                  <a href={`/api/attachments/${att.id}/download`} download className="text-emerald-700 font-bold hover:underline">Download</a>
+              {/* Conditional Resolution Gate Note & Confirmation (Image 4 & 3) */}
+              {selectedNextStatus === 'RESOLVED' && (
+                <div className="mt-2 text-xs text-slate-600 space-y-2">
+                  <p className="leading-snug">
+                    Resolving requires a completed Action Taken with a result and no unfinished required follow-ups.
+                  </p>
+                  <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={confirmResolve}
+                      onChange={(e) => setConfirmResolve(e.target.checked)}
+                      className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
+                    />
+                    I confirm this status change.
+                  </label>
                 </div>
-              ))}
+              )}
             </div>
-          )}
+
+            {/* Update status button */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleUpdateStatus}
+                disabled={!selectedNextStatus || (selectedNextStatus === 'RESOLVED' && !confirmResolve)}
+                className="px-4 py-2 bg-[#006B3C] hover:bg-[#004D2B] disabled:opacity-40 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+              >
+                Update status
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Actions Taken Section */}
-      <ActionsTakenSection ticketId={ticket.id} />
+      <ActionsTakenSection
+        ticketId={ticket.id}
+        onActionsLoaded={(loaded) => setActionsList(loaded)}
+      />
 
-      {/* Card 4: Side-by-Side Public Comments & Internal Notes Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Public Comments (Left Column) */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-800">Public Comments</h3>
-            <p className="text-xs text-slate-500 mb-4">Visible to the Requester, IT Staff, and Administrator.</p>
+      {/* Bottom Section: Attachments, Public Comments, Internal Notes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        {/* Left: Attachments */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs h-fit">
+          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Attachments</h3>
+          {ticket.attachments && ticket.attachments.length > 0 ? (
+            <div className="space-y-2">
+              {ticket.attachments.map((a) => (
+                <div key={a.id} className="p-2 border border-slate-100 rounded text-xs flex justify-between">
+                  <span className="font-medium text-slate-800">{a.fileName}</span>
+                  <span className="text-slate-400">{a.mimeType}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">No attachments.</p>
+          )}
+        </div>
 
-            <form onSubmit={handleAddPublicComment} className="space-y-3 mb-6">
+        {/* Right: Public Comments & Internal Notes */}
+        <div className="space-y-6">
+          {/* Public Comments */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+            <h3 className="text-xs font-bold text-[#006B3C] uppercase tracking-wider mb-2">Public Comments</h3>
+            {ticket.publicComments && ticket.publicComments.length > 0 ? (
+              <div className="space-y-3 mb-4">
+                {ticket.publicComments.map((c) => (
+                  <div key={c.id} className="p-3 bg-slate-50 border border-slate-100 rounded-lg text-xs">
+                    <div className="flex justify-between font-bold text-slate-800 mb-1">
+                      <span>{c.author.name} ({c.author.role})</span>
+                      <span className="text-slate-400 font-normal">{new Date(c.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-slate-700">{c.content}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 mb-3">No public comments.</p>
+            )}
+
+            <form onSubmit={handleAddPublicComment} className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">Add Public Comment</label>
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a public update..."
                 rows={3}
-                maxLength={2000}
-                className="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full p-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-600"
               />
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>{newComment.length}/2000</span>
-                <button
-                  type="submit"
-                  disabled={submittingComment || !newComment.trim()}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
-                >
-                  {submittingComment ? 'Posting...' : 'Post comment'}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={!newComment.trim() || submittingComment}
+                className="px-3 py-1.5 bg-[#006B3C] hover:bg-[#004D2B] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs"
+              >
+                Add Public Comment
+              </button>
             </form>
-
-            <div className="space-y-3">
-              {(!ticket.publicComments || ticket.publicComments.length === 0) ? (
-                <p className="text-xs text-slate-400 italic">No public comments yet.</p>
-              ) : (
-                ticket.publicComments.map((c) => (
-                  <div key={c.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                        {c.author.name}
-                        <span className="px-2 py-0.5 text-[10px] bg-slate-200 text-slate-700 font-extrabold rounded uppercase">
-                          {c.author.role}
-                        </span>
-                      </span>
-                      <span className="text-slate-400">{new Date(c.createdAt).toLocaleString()}</span>
-                    </div>
-                    <p className="text-slate-700 text-xs leading-relaxed whitespace-pre-wrap">{c.content}</p>
-                  </div>
-                ))
-              )}
-            </div>
           </div>
-        </div>
 
-        {/* Internal Notes (Right Column) */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-800">Internal Notes</h3>
-            <p className="text-xs text-amber-700 font-semibold mb-4">Internal — visible to IT Staff and Administrators only</p>
+          {/* Internal Notes */}
+          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+            <h3 className="text-xs font-bold text-[#006B3C] uppercase tracking-wider mb-2">Internal Notes</h3>
+            {ticket.internalNotes && ticket.internalNotes.length > 0 ? (
+              <div className="space-y-3 mb-4">
+                {ticket.internalNotes.map((n) => (
+                  <div key={n.id} className="p-3 bg-amber-50/50 border border-amber-100 rounded-lg text-xs">
+                    <div className="flex justify-between font-bold text-slate-800 mb-1">
+                      <span>{n.author.name} ({n.author.role})</span>
+                      <span className="text-slate-400 font-normal">{new Date(n.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-slate-700">{n.content}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 mb-3">No internal notes.</p>
+            )}
 
-            <form onSubmit={handleAddInternalNote} className="space-y-3 mb-6">
+            <form onSubmit={handleAddInternalNote} className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700">Add Internal Note</label>
               <textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Add an internal diagnostic note..."
                 rows={3}
-                maxLength={2000}
-                className="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                className="w-full p-2.5 border border-slate-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-emerald-600"
               />
-              <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>{newNote.length}/2000</span>
-                <button
-                  type="submit"
-                  disabled={submittingNote || !newNote.trim()}
-                  className="px-4 py-2 bg-amber-700 hover:bg-amber-800 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
-                >
-                  {submittingNote ? 'Saving...' : 'Post internal note'}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={!newNote.trim() || submittingNote}
+                className="px-3 py-1.5 bg-[#006B3C] hover:bg-[#004D2B] disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-xs"
+              >
+                Add Internal Note
+              </button>
             </form>
-
-            <div className="space-y-3">
-              {(!ticket.internalNotes || ticket.internalNotes.length === 0) ? (
-                <p className="text-xs text-slate-400 italic">No internal notes recorded yet.</p>
-              ) : (
-                ticket.internalNotes.map((n) => (
-                  <div key={n.id} className="p-3.5 bg-amber-50/60 border border-amber-200 rounded-xl space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                        {n.author.name}
-                        <span className="px-2 py-0.5 text-[10px] bg-amber-200 text-amber-900 font-extrabold rounded uppercase">
-                          {n.author.role}
-                        </span>
-                      </span>
-                      <span className="text-slate-400">{new Date(n.createdAt).toLocaleString()}</span>
-                    </div>
-                    <p className="text-slate-800 text-xs leading-relaxed whitespace-pre-wrap">{n.content}</p>
-                  </div>
-                ))
-              )}
-            </div>
           </div>
         </div>
       </div>

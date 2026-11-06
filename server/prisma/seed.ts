@@ -168,7 +168,8 @@ async function main() {
         name: u.name,
         role: u.role,
         isActive: u.isActive,
-        mustChangePassword: u.mustChangePassword
+        mustChangePassword: u.mustChangePassword,
+        passwordHash: defaultPasswordHash
       },
       create: {
         email: u.email,
